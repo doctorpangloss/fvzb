@@ -1,10 +1,114 @@
 <head>
-    <title>fvzb</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zunnies</title>
+    <script src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
+    <script src="http://code.createjs.com/tweenjs-0.3.0.min.js"></script>
+    <link rel="stylesheet" href="/themes/fvzb.min.css" />
+    <script type="text/javascript">
+        $(document).bind("mobileinit",function(event,data){
+            $.mobile.autoInitializePage=true;
+            $.mobile.defaultPageTransition='slide';
+        });
+    </script>
+    <script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+    <meta name="viewport" content="initial-scale=1.6; maximum-scale=1.0; width=device-width; "/>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
 </head>
 
 <body>
+    <div data-role="page" id="home" data-theme="a">
+        <div data-role="content">
+            <ul data-role="listview" data-inset="true" class="rounded">
+                {{#isolate}}
+                    {{> menu}}
+                {{/isolate}}
+            </ul>
+            {{#isolate}}
+                {{> connection}}
+                {{> error}}
+            {{/isolate}}
+        </div>
+    </div>
 
+    {{! Main game page }}
+    <div data-role="page" id="game" data-theme="a">
+        <div data-role="content">
+        </div>
+    </div>
+
+    {{! Login and accounts UI}}
+    <div data-role="page" id="login" data-theme="a">
+        <div data-role="content">
+            <div data-role="collapsible-set">
+                <div data-role="collapsible" data-collapsed="false">
+                    <h3>Login with Facebook or Google</h3>
+                    <a href="#" data-role="button" data-icon="arrow-r" onclick="loginWithFacebook()">Login with Facebook</a>
+                    <a href="#" data-role="button" data-icon="arrow-r" onclick="loginWithGoogle()">Login with Google</a>
+                </div>
+                <div data-role="collapsible">
+                    <h3>Play Anonymously</h3>
+                    <form>
+                        <label for="anonymousNickname" class="ui-hidden-accessible">Nickname</label>
+                        <input type="text" name="anonymousNickname" id="anonymousNickname" value="" placeholder="Nickname"/>
+                    </form>
+                    <a href="#" data-role="button" data-icon="arrow-r" onclick="loginAnonymously()">Login Anonymously</a>
+                </div>
+                <div data-role="collapsible">
+                    <h3>Create An Account</h3>
+                    <div data-role="collapsible-set">
+                        <div data-role="collapsible" data-collapsed="false">
+                            <h3>Make a New Account</h3>
+                            <form>
+                                <label for="signUpUsername" class="ui-hidden-accessible">Username</label>
+                                <input type="text" name="signUpUsername" id="signUpUsername" value="" placeholder="Username"/>
+                                <label for="signUpEmail" class="ui-hidden-accessible">E-mail Address</label>
+                                <input type="email" name="signUpEmail" id="signUpEmail" value="" placeholder="E-mail Address"/>
+                                <label for="signUpUsername" class="ui-hidden-accessible">Password</label>
+                                <input type="password" name="signUpPassword" id="signUpPassword" value="" placeholder="Password"/>
+                            </form>
+                            <a href="#" data-role="button" data-icon="plus" onclick="signUp()">Create</a>
+                        </div>
+                        <div data-role="collapsible">
+                            <h3>Login with an Existing Account</h3>
+                            <form>
+                                <label for="loginUsernameOrEmail" class="ui-hidden-accessible">Username or E-mail</label>
+                                <input type="text" name="loginUsernameOrEmail" id="loginUsernameOrEmail" value="" placeholder="Username or E-mail"/>
+                                <label for="loginPassword" class="ui-hidden-accessible">Password</label>
+                                <input type="password" name="loginPassword" id="loginPassword" value="" placeholder="Password"/>
+                            </form>
+                            <a href="#" data-role="button" data-icon="plus" onclick="login()">Login</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{#isolate}}
+                {{> connection}}
+                {{> error}}
+            {{/isolate}}
+        </div>
+    </div>
 </body>
+
+<template name="menu">
+    {{#if currentUser}}
+        <li class="ui-btn-up-b"><a id="matchButton" href="#game" onclick="matchMake()">Play Now</a></li>
+        <li><a href="#" onclick="Meteor.logout()">Logout</a></li>
+    {{else}}
+        <li><a href="#login">Play Now</a></li>
+    {{/if}}
+</template>
+
+<template name="connection">
+    {{#if connectionStatus}}
+        {{connectionStatus}}
+    {{/if}}
+    {{#if loggingIn}}
+        (Logging in...)
+    {{/if}}
+</template>
+
+<template name="error">
+    {{#if error}}
+        <p>{{error}}</p>
+    {{/if}}
+</template>
