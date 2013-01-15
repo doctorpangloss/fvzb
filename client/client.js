@@ -5,6 +5,10 @@
 CURRENT_GAME = "currentGame";
 
 Meteor.startup(function (){
+    // Login anonymously
+    if (!Meteor.user())
+        createNewAnonymousUser();
+
     // Draw gameboard
     Meteor.call("startGame",function(e,r){
         if (r)
