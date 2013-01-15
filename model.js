@@ -71,9 +71,11 @@ var generateGemBoard = function(width,height,numColors) {
     var board = [];
     var colors = _.range(numColors);
     // Generate first row, from which to derive future rows (base case)
-    for (var x = 0; x < width; x++) {
-        board.push(Math.floor(Math.random()*COLORS));
-    }
+    board.push(
+        _.map(_.range(width), function() {
+            return Math.floor(Math.random()*COLORS);
+        })
+    );
     for (var y = 1; y < height; y++) {
         // Generate a row where each element is not the same as an adjacent element and different from the element above
         // First, the base case, the first element of the row, is placed into the memo. Then, the array we're computing
@@ -86,7 +88,7 @@ var generateGemBoard = function(width,height,numColors) {
                         // Place a piece that is not the adjacent piece or a piece above
                         var left = row[row.length-1];
                         // Extend the memo row with a random color that isn't the above color or the left color;
-                        return row.extend([_.first(_.shuffle(_.without(colors,above,left)))]);
+                        return row.concat([_.first(_.shuffle(_.without(colors,above,left)))]);
                     },
                     // First element of the row is populated as our memo
                     [_.first(_.shuffle(_.without(colors,board[y-1][0])))]
@@ -120,7 +122,7 @@ Meteor.methods({
         // Otherwise, create a new game
         g = new GAME_SCHEMA();
         g.name = "Game #" + (Games.find({}).count() + 1).toString();
-        g.gemBoards = [generateGemBoard(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT,COLORS),generateGemBoard(WIDTH,HEIGHT,COLORS)];
+        g.gemBoards = [generateGemBoard(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT,COLORS),generateGemBoard(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT,COLORS)];
         g.users = [this.userId];
 
         var gameId = Games.insert(g);
