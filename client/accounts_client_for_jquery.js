@@ -2,6 +2,14 @@
  * @author Benjamin Berman
  * © 2012 All Rights Reserved
  **/
+var createNewAnonymousUser = function(nickname,callback) {
+    nickname = nickname || Math.random().toString(36).slice(-8);
+    callback = callback || function(e,r) {console.log(e);};
+    var userIdPadding = Math.random().toString(36).slice(-8);
+    var password = Math.random().toString(36).slice(-8);
+    Accounts.createUser({username:"Anonymous " + userIdPadding, password:password, profile:{name:nickname}},callback);
+};
+
 var login = function() {
     var loginUsernameOrEmail = $('#loginUsernameOrEmail').attr('value');
     var password = $('#loginPassword').attr('value');

@@ -9,53 +9,46 @@ CURRENT_GAME = "currentGame";
 * GUI Helpers
 * */
 
+var createListviews = function() {
+    $('[data-role="listview"]').listview();
+    //$.mobile.initializePage('[data-role="page"]');
+}
+
 var refreshListviews = function() {
     $('.ui-listview[data-role="listview"]').listview("refresh");
     $('[data-role="button"]:visible').button();
 }
 
-/*
-* Handlebars helpers
-* */
 
-Handlebars.registerHelper("times",function(a,b) {
-    try {
-        return a*b;
-    } catch (e) {
-        return 1;
-    }
-});
 
 /*
-* Templates
+* General
 * */
 
-Template.units.units = function() {
-    return Units.find({gameId:Session.get(CURRENT_GAME),queued:false,x:{$gte:0,$lt:TUG_BOARD_WIDTH},y:{$gte:0,$lt:TUG_BOARD_HEIGHT}}).fetch();
-}
-
-Meteor.startup(function (){
-    // Login anonymously
-    if (!Meteor.user())
-        createNewAnonymousUser();
-
-    // Draw gameboard
+var matchMake = function() {
     Meteor.call("startGame",function(e,r){
         if (r)
             Session.set(CURRENT_GAME,r);
         if (e)
             console.log(e);
     });
+}
 
-    // Render
-    var frag = Meteor.render(function () {
-        var g = Session.get(CURRENT_GAME);
-        if (g && g.length > 0) {
-            var game = Games.findOne({_id:g});
-            if (game)
-                return "<p>" + getGemBoard(game,Meteor.userId()).join('<br>') + "</p>";
+/*
+* Templates
+* */
+
+Template.menu.created = createListviews;
+Template.menu.rendered = refreshListviews;
+
+var mutationObserver = {};
+
+Meteor.startup(function (){
+
+    mutationObserver = new MutationSummary({
+        queries: [{element:'[data-role="page"]',elementAttributes:'class'},{element:'[data-role="listview"]'},{element:'li'},{element:'[data-role="button"]'}],
+        callback: function(summaries) {
+            refreshListviews();
         }
     });
-
-    document.body.appendChild(frag);
 });

@@ -99,14 +99,6 @@ var getGemBoard = function(gameDocument,userId) {
     return gameDocument[getRole(gameDocument,userId)].gemBoard;
 };
 
-var createNewAnonymousUser = function(nickname,callback) {
-    nickname = nickname || Math.random().toString(36).slice(-8);
-    callback = callback || function(e,r) {console.log(e);};
-    var userIdPadding = Math.random().toString(36).slice(-8);
-    var password = Math.random().toString(36).slice(-8);
-    Accounts.createUser({username:"Anonymous " + userIdPadding, password:password, profile:{name:nickname}},callback);
-};
-
 // GemBoards are of the form gemBoard[y][x] (row major order)
 var generateGemBoard = function(width,height,numColors) {
     var board = [];
@@ -173,6 +165,7 @@ var isSwapValid = function(gemBoard,ax,ay,bx,by) {
         (Math.abs(ax-bx) === 0 && Math.abs(ay-by) === 1)))
         return false;
 
+    // TODO Optimize by removing swap
     var rowMajorGemBoard = swap(gemBoard,ax,ay,bx,by);
 
     for (var x = 2; x < GEM_BOARD_WIDTH; x++) {
@@ -318,7 +311,7 @@ Meteor.methods({
         var swapValid = isSwapValid(getGemBoard(g,this.userId),ax,ay,bx,by);
 
         // Is the swap valid? If so, update the gemBoard and return true. Otherwise return false. The client is expected
-        // to call evaluate when it's ready.
+        // to call evaluate when it's true.
         if (swapValid) {
             var boardUpdate = {};
             boardUpdate[getRole(g,this.userId) + ".gemBoard"] = swap(getGemBoard(g,this.userId),ax,ay,bx,by);
@@ -405,16 +398,16 @@ Meteor.methods({
         Units.remove({gameId:gameId,gettingKilled:true});
 
         // Move units
-        Units.update({gameId:gameId,queued:false,role:BUNNY},{$inc:{y:1}},{multi:true});
-        Units.update({gameId:gameId,queued:false,role:FARMER},{$inc:{y:-1}},{multi:true});
+        Units.update({gameId:gameId,queued:false,role:BUNNY},{$inc:{x:-1}},{multi:true});
+        Units.update({gameId:gameId,queued:false,role:FARMER},{$inc:{x:1}},{multi:true});
 
         // Mark units off board to die and increment life counters
-        Units.update({gameId:gameId,queued:false,$or:[{y:{$gte:TUG_BOARD_HEIGHT}},{y:{$lt:0}}]},
+        Units.update({gameId:gameId,queued:false,$or:[{x:{$gte:TUG_BOARD_WIDTH}},{x:{$lt:0}}]},
             {$set:{gettingKilled:true}},{multi:true});
 
         // Score units that made it to the other side
-        var bunnyLifeLost = Units.find({gameId:gameId,queued:false,role:FARMER,y:{$lt:0}}).count();
-        var farmerLifeLost = Units.find({gameId:gameId,queued:false,role:BUNNY,y:{$gte:TUG_BOARD_HEIGHT}}).count();
+        var farmerLifeLost = Units.find({gameId:gameId,queued:false,role:BUNNY,x:{$lt:0}}).count();
+        var bunnyLifeLost = Units.find({gameId:gameId,queued:false,role:FARMER,x:{$gte:TUG_BOARD_WIDTH}}).count();
 
         // Mark units that should kill each other.
         // First, overlapping destruction.
@@ -431,13 +424,14 @@ Meteor.methods({
             }
         }
 
-        // Units on adjacent rows or equal rows should kill each other. Prevents units from "moving past" each other,
-        // where we would otherwise never destroy units that are opposing because they never share a row.
+        // Units on adjacent columns or equal rows should kill each other. Prevents units from "moving past" each other,
+        // where we would otherwise never destroy units that are opposing because they never share a column.
         // Units that share the same space should also kill each other.
-        for (var row = 0; row < TUG_BOARD_HEIGHT-1; row++) {
-            // If units share a row or an adjacent row, have opposite roles and the same color, pair off and mark to die
-            var farmers = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:FARMER,y:{$in:[row,row+1]}}).fetch();
-            var bunnies = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:BUNNY,y:{$in:[row,row+1]}}).fetch();
+        for (var column = 0; column < TUG_BOARD_WIDTH-1; column++) {
+            // If units share a column or an adjacent row, have opposite roles and the same color, pair off and mark
+            // to die.
+            var farmers = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:FARMER,x:{$in:[column,column+1]}}).fetch();
+            var bunnies = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:BUNNY,x:{$in:[column,column+1]}}).fetch();
 
             _.each(farmers,function(farmer) {
                 _.each(bunnies,function(bunny) {
@@ -463,18 +457,18 @@ Meteor.methods({
             // Unit unqueueing is stochastic, so return on simulation
             if (Meteor.isSimulation)
                 return;
-            // If the unit is a Bunny, it wants to go to the top of the tug of war board. Otherwise, the bottom.
-            var row = unit.role === BUNNY ? 0 : TUG_BOARD_HEIGHT-1;
+            // If the unit is a Bunny, it wants to go to the right of the tug of war board. Otherwise, the left.
+            var column = unit.role === BUNNY ? TUG_BOARD_WIDTH-1 : 0;
             // Find empty spaces to put the unit into
             var emptySpaces = _.difference( /*The difference between...*/
-                _.range(TUG_BOARD_WIDTH) /*...Total Spaces...*/,
-                _.pluck(Units.find({y:row}).fetch(),"x" /*... and the occupied spaces in the specified row*/));
+                _.range(TUG_BOARD_HEIGHT) /*...Total Spaces...*/,
+                _.pluck(Units.find({x:column}).fetch(),"y" /*... and the occupied spaces in the specified columns*/));
 
             // If there is at least one empty space
             if (emptySpaces && emptySpaces.length > 0) {
                 // Place the unit into a random empty horizontal.
-                unit.x = _.first(_.shuffle(emptySpaces));
-                unit.y = row;
+                unit.y = _.first(_.shuffle(emptySpaces));
+                unit.x = column;
                 unit.queued = false;
             }
 
