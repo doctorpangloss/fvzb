@@ -15,12 +15,13 @@ Array.prototype.clone = function() {
 }
 
 
-COLORS = 4;
+COLORS = 6;
 GEM_BOARD_WIDTH = 7;
 GEM_BOARD_HEIGHT = 7;
 TUG_BOARD_WIDTH = 7;
 TUG_BOARD_HEIGHT = 7;
-// How many milliseconds do we wait until we check the gemBoard again for cascades? Used for animation too.
+STARTING_LIFE = 20;
+// How many milliseconds do we wait until we check the gemboard again for cascades? Used for animation too.
 GEM_BOARD_NEXT_EVALUATION_DELAY = 400;
 
 /*
@@ -29,10 +30,11 @@ GEM_BOARD_NEXT_EVALUATION_DELAY = 400;
 * 1. Click two pieces.
 * 2. If adjacent, continue. Otherwise, wait for 1.
 * 3. If k>=3 of same color adjacent vertically or horizontally, continue. Otherwise, do not swap, wait for 1.
-* 4. Kill k gems, compute new vertical  gems to fill at top of columns in model. Spawn appropriate unit
+* 4. Kill k gems, move gems down to fill at top of columns in model. Spawn appropriate unit
 * counts given the number of pieces killed by placing them into the unit queue.
-* 5. Kill k divs, generate new divs, run animation events, register animation on-complete events.
-* 6. On animation complete/after a built-in model delay, go to 3 to check the new board.
+* 5. Generate hidden gems at the top to replace old gems (in "negative space").
+* 6. Kill k divs, generate new divs, run animation events, register animation on-complete events.
+* 7. On animation complete/after a built-in model delay, go to 3 to check the new board.
 *
 * Tug of war game flow:
 * 0. Clear game board
@@ -50,17 +52,16 @@ GEM_BOARD_NEXT_EVALUATION_DELAY = 400;
 * */
 
 
-BUNNY = "bunny";
-FARMER = "farmer";
+BUNNY = 1;
+FARMER = 2;
+
 var GAME_SCHEMA = function() {
     this.name = "";
     this.bunny = {
-        gemBoard:[[]],
-        life:20
+        life:STARTING_LIFE
     };
     this.farmer = {
-        gemBoard:[[]],
-        life:20
+        life:STARTING_LIFE
     };
     this.users = [];
     // Get which role the user is playing
@@ -81,11 +82,23 @@ var UNIT_SCHEMA = function() {
     this.queued = false;
 };
 
+var GEM_SCHEMA = function() {
+    this.gameId = "";
+    this.role = BUNNY;
+    this.x=0;
+    this.y=0;
+    this.color=0;
+    this.destroyed=false;
+}
+
 // Main collection containing games.
-Games = new Meteor.Collection("games");
+var Games = new Meteor.Collection("games");
 
 // Collection containing units per game. Really handy to treat as separate collection.
-Units = new Meteor.Collection("units");
+var Units = new Meteor.Collection("units");
+
+// Collection containing gems per game
+var Gems = new Meteor.Collection("gems");
 
 var getGame = function(gameId) {
     return Games.findOne({_id:gameId});
@@ -95,12 +108,57 @@ var getRole = function(gameDocument,userId) {
     return gameDocument.roles[userId];
 };
 
-var getGemBoard = function(gameDocument,userId) {
-    return gameDocument[getRole(gameDocument,userId)].gemBoard;
+var getRandomColor = function(numColors) {
+    return _.first(_.shuffle(_.range(numColors)));
+}
+
+// Generate a row major width x height 2 dimensional array of zeros
+var generateNbyN = function(width,height,init) {
+    var rowMajor = [];
+    for (var y = 0; y < height; y++) {
+        rowMajor.push(_.map(_.range(width),function(o) {return 0;}));
+    }
+    return rowMajor;
 };
 
-// GemBoards are of the form gemBoard[y][x] (row major order)
-var generateGemBoard = function(width,height,numColors) {
+// Perform an equality comparison for three elements, a convenience function
+var threeEqual  = function(a,b,c) {
+    if ((a === b) && (b === c))
+        return true;
+
+    return false;
+}
+
+
+// New-style gemboard code
+
+var rowMajorSort = function(a,b) {
+    return (a.y - b.y)*GEM_BOARD_WIDTH+(a.x - b.x);
+}
+
+var columnMajorSort = function(a,b) {
+    return (a.x - b.x)*GEM_BOARD_HEIGHT+(a.y - b.y);
+}
+
+// Creates a sparse matrix as a function with mutable data and immutable structure
+var matrix = function() {
+    var binding = {};
+    var data = _.flatten(Array.prototype.slice.call(arguments));
+    var empty = {};
+    _.each(data,function (item) {
+        if (item && _.has(item,'x') && _.has(item,'y')) {
+            empty["a" + item.y.toString() + "x" + item.x.toString()] = item;
+        }
+    });
+    binding.data = empty;
+    return _.bind(function(x,y){
+        return this.data["a" + y.toString() + "x" + x.toString()];
+    },binding);
+}
+
+
+// Generates a double-height gemboard that contains the current gemboard elements and an initial batch of new elements.
+var generateGemboard = function(width,height,numColors) {
     var board = [];
     var colors = _.range(numColors);
     // Generate first gem, from which to derive future rows (base case)
@@ -108,7 +166,7 @@ var generateGemBoard = function(width,height,numColors) {
     for (var x = 1; x < width; x++) {
         board[0].push(_.first(_.shuffle(_.without(colors,board[0][x-1]))));
     }
-    for (var y = 1; y < height; y++) {
+    for (var y = 1; y < height*2; y++) {
         // Generate a row where each element is not the same as an adjacent element and different from the element above
         // First, the base case, the first element of the row, is placed into the memo. Then, the array we're computing
         // on is our row above. Finally, append to the board a new row that satisfies the conditions above.
@@ -133,59 +191,151 @@ var generateGemBoard = function(width,height,numColors) {
     return board;
 };
 
-// Generate a row major width x height 2 dimensional array of zeros
-var generateNbyN = function(width,height) {
-    var board = [];
-    for (var y = 0; y < height; y++) {
-        board.push(_.map(_.range(width),function(o) {return 0;}));
+var appendNewGemboardToGemCollection = function(gameId,role,rowMajor) {
+    for (var y = 0; y < rowMajor.length; y++) {
+        for (var x = 0; x < rowMajor[y].length; x++) {
+            var g = new GEM_SCHEMA();
+            g.x = x;
+            // Places gems into a hidden area above where they are not evaluated but ready to be inserted into the main
+            // gemboard field.
+            g.y = y-GEM_BOARD_HEIGHT;
+            g.role = role;
+            g.gameId = gameId;
+            g.color = rowMajor[y][x];
+            g.destroyed = false;
+            Gems.insert(g);
+        }
     }
-    return board;
-};
-
-// Returns a cloned gemBoard with the given tiles swapped
-var swap = function(gemBoard,ax,ay,bx,by) {
-    var gemBoardClone = gemBoard.clone();
-    gemBoardClone[by][bx] = gemBoard[ay][ax];
-    gemBoardClone[ay][ax] = gemBoard[by][bx];
-    return gemBoardClone;
-};
-
-// Perform an equality comparison for three elements, a convenience function
-var threeEqual  = function(a,b,c) {
-    if ((a === b) && (b === c))
-        return true;
-
-    return false;
 }
 
-// Check if a swap is valid by swapping and checking the changed rows and columns
-var isSwapValid = function(gemBoard,ax,ay,bx,by) {
+var initializeGemboard = function(gameId,role) {
+    appendNewGemboardToGemCollection(gameId,role,generateGemboard(GEM_BOARD_WIDTH, GEM_BOARD_HEIGHT, COLORS));
+}
+
+var isSwapValid = function(gameId,role,ax,ay,bx,by) {
+    // Are the tiles valid?
+    if (ax < 0 || ay < 0 || ax > GEM_BOARD_WIDTH || ay > GEM_BOARD_HEIGHT)
+        return false;
+
     // Are the tiles being swapped horizontally or vertically adjacent?
     if (!((Math.abs(ax-bx) === 1 && Math.abs(ay-by) === 0) ||
         (Math.abs(ax-bx) === 0 && Math.abs(ay-by) === 1)))
         return false;
 
-    // TODO Optimize by removing swap
-    var rowMajorGemBoard = swap(gemBoard,ax,ay,bx,by);
+    // For a simulation, return true to have a "bounce back" effect
+    if (Meteor.isSimulation)
+        return true;
 
+    // Get gems
+    var aQuery = Gems.find({gameId:gameId,role:role,$or:[{x:ax},{y:ay}]}).fetch();
+    var bQuery = Gems.find({gameId:gameId,role:role,$or:[{x:bx},{y:by}]}).fetch();
+
+    // Perform temporary swap
+    var m = matrix(aQuery,bQuery);
+    var tempColor = m(ax,ay).color;
+    m(ax,ay).color = m(bx,by).color;
+    m(bx,by).color = tempColor;
+    // Bind to color by default
+    var m_color = _.bind(function(x,y){return this(x,y).color},m);
+
+    // Check if this swap causes a change
     for (var x = 2; x < GEM_BOARD_WIDTH; x++) {
-        if (threeEqual(rowMajorGemBoard[ay][x-2],rowMajorGemBoard[ay][x-1],rowMajorGemBoard[ay][x]) ||
-            threeEqual(rowMajorGemBoard[by][x-2],rowMajorGemBoard[by][x-1],rowMajorGemBoard[by][x])) {
+        if (threeEqual(m_color(x-2,ay),m_color(x-1,ay),m_color(x,ay)) ||
+            threeEqual(m_color(x-2,by),m_color(x-1,by),m_color(x,by))) {
             return true;
         }
     }
 
     for (var y = 2; y < GEM_BOARD_HEIGHT; y++) {
-        if (threeEqual(rowMajorGemBoard[y-2][ax],rowMajorGemBoard[y-1][ax],rowMajorGemBoard[y][ax]) ||
-            threeEqual(rowMajorGemBoard[y-2][bx],rowMajorGemBoard[y-1][bx],rowMajorGemBoard[y][bx])) {
+        if (threeEqual(m_color(ax,y-2),m_color(ax,y-1),m_color(ax,y)) ||
+            threeEqual(m_color(bx,y-2),m_color(bx,y-1),m_color(bx,y))) {
             return true;
         }
     }
 
     return false;
-};
+}
 
-var placeUnitsIntoQueue = function(gameId,role,colorsDestroyed) {
+var swap = function(gameId,role,ax,ay,bx,by) {
+    if (!isSwapValid(gameId,role,ax,ay,bx,by))
+        return false;
+
+    // Swap the gems. Store the gemB id to be the "temp" of the swap.
+    var gemB = Gems.findOne({gameId:gameId,role:role,x:bx,y:by})._id;
+    Gems.update({gameId:gameId,role:role,x:ax,y:ay},{$set:{x:bx,y:by}});
+    Gems.update(gemB,{$set:{x:ax,y:ay}});
+
+    return true;
+}
+
+var evaluateGemboard = function(gameId,role) {
+    // Is there any activity due to destruction?
+    var activity = false;
+
+    // Will we destroy some gems?
+    if (Gems.find({gameId:gameId,role:role,destroyed:true}).count() > 0) {
+        // Delete the gems that were marked as destroyed from previous rounds
+        Gems.remove({gameId:gameId,role:role,destroyed:true});
+
+        activity = true;
+    }
+
+    // Get gems in the visible field
+    var m = matrix(Gems.find({gameId:gameId,role:role,y:{$gte:0},destroyed:false}).fetch());
+
+    // Bind convenience functions (lookup tables)
+    var m_color = _.bind(function(x,y) {return this(x,y).color},m);
+    var m_id = _.bind(function(x,y) {return this(x,y)._id},m);
+
+
+    // List of gems to destroy
+    var destroyedGems = [];
+    // Number of each color destroyed, indexed by color
+    var colorsDestroyed = _.map(_.range(COLORS),function () {return 0;});
+
+    // Get 3+ contiguous elements in rows. Mark them as destroyed. Perform a full-table analysis because this evaluation
+    // might be used for cascades and arbitrary number of colors.
+    for (var y = 0; y < GEM_BOARD_HEIGHT; y++) {
+        for (var x = 2; x < GEM_BOARD_WIDTH; x++) {
+            // If three are adjacent, get the color and add the tiles to destroyables
+            if (threeEqual(m_color(x-2,y),m_color(x-1,y),m_color(x,y))) {
+                activity = true;
+                colorsDestroyed[m_color(x,y)]++;
+                destroyedGems = destroyedGems.concat([m_id(x-2,y),m_id(x-1,y),m_id(x,y)]);
+            }
+        }
+    }
+
+    // Get 3+ contiguous elements in columns
+    for (var x = 0; x < GEM_BOARD_WIDTH; x++) {
+        for (y = 2; y < GEM_BOARD_HEIGHT; y++) {
+            if (threeEqual(m_color(x,y-2),m_color(x,y-1),m_color(x,y))) {
+                activity = true;
+                colorsDestroyed[m_color(x,y)]++;
+                destroyedGems = destroyedGems.concat([m_id(x,y-2),m_id(x,y-1),m_id(x,y)]);
+            }
+        }
+    }
+
+    // Remove duplicates
+    destroyedGems = _.uniq(destroyedGems);
+
+    // Destroy gems
+    Gems.update({_id:{$in:destroyedGems}},{$set:{destroyed:true}},{multi:true});
+
+    // Slide down tiles
+    // TODO Coalesce removal updates
+    _.each(destroyedGems,function(destroyedId){
+        var destroyed = Gems.findOne(destroyedId);
+
+        // Update the new position of each gem in the column above the destroyed gem
+        Gems.update({gameId:gameId,role:role,x:destroyed.x,y:{$lte:destroyed.y},destroyed:false},{$inc:{y:1}},{multi:true});
+
+        // Insert a replacement gem into the negative space
+        Gems.insert({gameId:gameId,role:role,x:destroyed.x,y:-GEM_BOARD_HEIGHT,color:getRandomColor(COLORS),destroyed:false});
+    });
+
+    // Place units into the queue to be unqueued by a "tug" call later
     for (var color = 0; color < COLORS; color++) {
         for (var count = 0; count < colorsDestroyed[color]; count++) {
             // If there is open space
@@ -197,75 +347,8 @@ var placeUnitsIntoQueue = function(gameId,role,colorsDestroyed) {
             Units.insert(unit);
         }
     }
-};
 
-var evaluateGemBoard = function(rowMajor) {
-    // Is there any activity due to destruction?
-    var activity = false;
-    // Bitmap of tiles to destroy
-    var destroyedTiles = generateNbyN(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT);
-    // Number of each color destroyed, indexed by color
-    var colorsDestroyed = _.map(_.range(COLORS),function () {return 0;});
-    // Emptied gemBoard
-    var columnMajorNewGemBoard = [];
-    // Replacement gems per column
-    var replacementGemsPerColumn = [];
-
-    // Get 3+ contiguous elements in rows. Mark them as destroyed. Perform a full-table analysis because this evaluation
-    // might be used for cascades and arbitrary number of colors.
-    for (var y = 0; y < GEM_BOARD_HEIGHT; y++) {
-        for (var x = 2; x < GEM_BOARD_WIDTH; x++) {
-            // If three are adjacent, get the color and add the tiles to destroyables
-            if (threeEqual(rowMajor[y][x-2],rowMajor[y][x-1],rowMajor[y][x])) {
-                activity = true;
-                colorsDestroyed[rowMajor[y][x]]++;
-                destroyedTiles[y][x] = 1;
-                destroyedTiles[y][x-1] = 1;
-                destroyedTiles[y][x-2] = 1;
-            }
-        }
-    }
-
-    // Get 3+ contiguous elements in columns
-    for (var x = 0; x < GEM_BOARD_WIDTH; x++) {
-        for (y = 2; y < GEM_BOARD_HEIGHT; y++) {
-            if (threeEqual(rowMajor[y][x],rowMajor[y-1][x],rowMajor[y-2][x])) {
-                activity = true;
-                colorsDestroyed[rowMajor[y][x]]++;
-                destroyedTiles[y][x] = 1;
-                destroyedTiles[y-1][x] = 1;
-                destroyedTiles[y-2][x] = 1;
-            }
-        }
-    }
-
-    // TODO: Make gemBoard algorithm that works in row major, or convert row major gemBoards to column major
-    // Create new gemBoard
-    for (var x = 0; x < GEM_BOARD_WIDTH; x++) {
-        columnMajorNewGemBoard.push([]);
-        replacementGemsPerColumn.push([]);
-        for (var y = 0; y < GEM_BOARD_HEIGHT; y++) {
-            if (!destroyedTiles[y][x]) {
-                // Will push down the column later
-                columnMajorNewGemBoard[x].push(rowMajor[y][x]);
-            } else {
-                // Using these replacement gems
-                replacementGemsPerColumn[x].push(Math.floor(Math.random()*COLORS));
-            }
-        }
-
-        // Add the gems in (push down the column of gems)
-        for (var i = replacementGemsPerColumn[x].length-1; i >=0; i--) {
-            columnMajorNewGemBoard[x].unshift(replacementGemsPerColumn[x][i])
-        }
-    }
-
-    // Generate a row major version of the new gemBoard (some kind of UnderscoreJS wizardry)
-    var rowMajorNewGemBoard = _.zip.apply(_, columnMajorNewGemBoard);
-
-    // A doozy of a control structure, but has to be computed somewhere.
-    return {activity:activity,destroyedTiles:destroyedTiles,colorsDestroyed:colorsDestroyed,
-        rowMajorNewGemBoard:rowMajorNewGemBoard,replacementGemsPerColumn:replacementGemsPerColumn};
+    return activity;
 }
 
 Meteor.methods({
@@ -276,22 +359,31 @@ Meteor.methods({
 
         // Join the game if found.
         if (g) {
-            var roles = g.roles;
-            if (!_.has(roles,this.userId))
-                roles[this.userId] = FARMER;
-            Games.update({"_id":g._id},{$addToSet:{users:this.userId},$set:{roles:roles}});
+            if (!_.has(g.roles,this.userId))
+                g.roles[this.userId] = FARMER;
+            Games.update({"_id":g._id},{$addToSet:{users:this.userId},$set:{roles:g.roles}});
             // Return the game id.
             return g._id;
         }
 
         // Otherwise, create a new game
         g = new GAME_SCHEMA();
+
+        g.bunny.life =
         g.name = "Game #" + (Games.find({}).count() + 1).toString();
-        g.bunny.gemBoard = generateGemBoard(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT,COLORS)
-        g.farmer.gemBoard = generateGemBoard(GEM_BOARD_WIDTH,GEM_BOARD_HEIGHT,COLORS);
         g.users = [this.userId];
         g.roles[this.userId] = BUNNY;
+
         var gameId = Games.insert(g);
+
+        // Initialize gemboards
+
+        if (!gameId)
+            throw new Meteor.Error(500,"Game was not created.");
+
+        initializeGemboard(gameId,BUNNY);
+        initializeGemboard(gameId,FARMER);
+
         return gameId;
     },
 
@@ -305,24 +397,18 @@ Meteor.methods({
         if (g.closed)
             throw new Meteor.Error(403,"The game is closed.");
 
-        if (_.indexOf(g.users,this.userId) == -1)
+        if (!_.contains(g.users,this.userId))
             throw new Meteor.Error(403,"You are not in this game.");
 
-        var swapValid = isSwapValid(getGemBoard(g,this.userId),ax,ay,bx,by);
+        var role = getRole(g,this.userId);
 
-        // Is the swap valid? If so, update the gemBoard and return true. Otherwise return false. The client is expected
-        // to call evaluate when it's true.
-        if (swapValid) {
-            var boardUpdate = {};
-            boardUpdate[getRole(g,this.userId) + ".gemBoard"] = swap(getGemBoard(g,this.userId),ax,ay,bx,by);
-            Games.update({_id:gameId},{$set:boardUpdate});
-            return true;
-        } else {
-            return false;
-        }
+        if (!role)
+            throw new Meteor.Error(500,"No role was assigned or one was not found.");
+
+        return swap(gameId,role,ax,ay,bx,by);
     },
 
-    // Evaluate the gemBoard and return a results object used for animation and more evaluation.
+    // Evaluate the gemboard and return a results object used for animation and more evaluation.
     evaluate: function(gameId) {
         var g = getGame(gameId);
 
@@ -332,47 +418,15 @@ Meteor.methods({
         if (g.closed)
             throw new Meteor.Error(403,"The game is closed.");
 
-        if (_.indexOf(g.users,this.userId) == -1)
+        if (!_.contains(g.users,this.userId))
             throw new Meteor.Error(403,"You are not in this game.");
 
         var role = getRole(g,this.userId);
 
-        var evaluation = evaluateGemBoard(getGemBoard(g,this.userId));
+        if (!role)
+            throw new Meteor.Error(500,"No role was assigned or one was not found.");
 
-        // Was something destroyed?
-        if (evaluation.activity) {
-            // An object used for animation.
-            var results = {kill:[],replacementGemsPerColumn:[]};
-            // Return a results object for the client. The client does this evaluation immediately after swapping.
-            for (var y = 0; y < GEM_BOARD_WIDTH; y++) {
-                for (var x = 0; x < GEM_BOARD_HEIGHT; x++) {
-                    if (evaluation.destroyedTiles[y][x])
-                        results.kill.push({x:x,y:y});
-                }
-            }
-
-            // Place units into queue
-            placeUnitsIntoQueue(gameId,role,evaluation.colorsDestroyed);
-
-            // If this is a simulation, return the kill part of the results, because we're waiting on the replacement
-            // gems anyway and do not want to update the boards.
-            if (this.isSimulation)
-                return results;
-
-            // TODO Generate replacement gems deterministically so they can be simulated on the client
-            results.replacementGemsPerColumn = evaluation.replacementGemsPerColumn;
-
-            // Update gemBoard
-            var boardUpdate = {};
-            boardUpdate[role + ".gemBoard"] = evaluation.rowMajorNewGemBoard;
-
-            Games.update({_id:gameId},{$set:boardUpdate});
-
-            return results;
-        }
-
-        // No activity was recorded. Return false to let the client know: stop checking.
-        return false;
+        return evaluateGemboard(gameId,role);
     },
 
     // Advance the tug of war board one timestep and return a results object used for animation
@@ -385,7 +439,7 @@ Meteor.methods({
         if (g.closed)
             throw new Meteor.Error(403,"The game is closed.");
 
-        if (_.indexOf(g.users,this.userId) == -1)
+        if (!_.contains(g.users,this.userId))
             throw new Meteor.Error(403,"You are not in this game.");
 
         // End the game if either player's life is less than 1
@@ -430,8 +484,8 @@ Meteor.methods({
         for (var column = 0; column < TUG_BOARD_WIDTH-1; column++) {
             // If units share a column or an adjacent row, have opposite roles and the same color, pair off and mark
             // to die.
-            var farmers = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:FARMER,x:{$in:[column,column+1]}}).fetch();
-            var bunnies = Units.find({gameId:gameId,queued:false,gettingKilled:false,role:BUNNY,x:{$in:[column,column+1]}}).fetch();
+            var farmers = Units.find({gameId:gameId,queued:false,role:FARMER,x:{$in:[column,column+1]},gettingKilled:false}).fetch();
+            var bunnies = Units.find({gameId:gameId,queued:false,role:BUNNY,x:{$in:[column,column+1]},gettingKilled:false}).fetch();
 
             _.each(farmers,function(farmer) {
                 _.each(bunnies,function(bunny) {

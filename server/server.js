@@ -21,6 +21,12 @@ Meteor.publish("users",function(){
 });
 
 Meteor.startup(function() {
+    Units._ensureIndex({gameId:1,role:1});
+    Gems._ensureIndex({gameId:1,role:1,x:1,y:1});
+    Gems._ensureIndex({gameId:1,role:1,y:1});
+
     Games.remove({});
     Units.remove({});
+    Gems.remove({});
+
 });

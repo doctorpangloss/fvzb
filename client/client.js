@@ -4,6 +4,8 @@
  **/
 
 CURRENT_GAME = "currentGame";
+CURRENT_ROLE = "currentRole";
+CURRENT_GEM_SELECTION = "currentGemSelection";
 
 /*
 * GUI Helpers
@@ -44,6 +46,19 @@ Template.menu.rendered = refreshListviews;
 var mutationObserver = {};
 
 Meteor.startup(function (){
+    Meteor.autorun(function () {
+        var g = getGame(Session.get(CURRENT_GAME));
+
+        if (!g)
+            return BUNNY;
+
+        var r = getRole(g,Meteor.userId());
+
+        if (!r)
+            return BUNNY;
+
+        Session.set(CURRENT_ROLE,r);
+    });
 
     mutationObserver = new MutationSummary({
         queries: [{element:'[data-role="page"]',elementAttributes:'class'},{element:'[data-role="listview"]'},{element:'li'},{element:'[data-role="button"]'}],

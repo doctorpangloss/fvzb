@@ -1,0 +1,7 @@
+<template name="gemboard">
+    <div id="gemboard">
+        {{#each gems}}
+            <a id="{{_id}}" href="#" class="gem {{role}}-{{color}} {{destroyed}}" style="top: {{posY}}px; left: {{posX}}px;" data-gem-x="{{x}}" data-gem-y="{{y}}"></a>
+        {{/each}}
+    </div>
+</template>

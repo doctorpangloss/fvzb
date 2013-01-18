@@ -1,0 +1,76 @@
+#gemboard {
+    width:800px;
+    height:800px;
+}
+
+.gem {
+    width: 96px;
+    height: 96px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    display: block !important;
+    position: absolute;
+    overflow: hidden;
+    opacity: 1;
+    transition-property: left, top, opacity;
+    transition-duration: 0.2s;
+    -webkit-transition-property: left, top, opacity;
+    -webkit-transition-duration: 0.2s;
+    -moz-transition-property: left, top, opacity;
+    -moz-transition-duration: 0.2s;
+    -ms-transition-property: left, top, opacity;
+    -ms-transition-duration: 0.2s;
+}
+
+.destroyed {
+    opacity: 0;
+}
+
+.bunny-0 {
+    background: url('/g/bunny_0.png') no-repeat left top;
+}
+
+.bunny-1 {
+    background: url('/g/bunny_1.png') no-repeat left top;
+}
+
+.bunny-2 {
+    background: url('/g/bunny_2.png') no-repeat left top;
+}
+
+.bunny-3 {
+    background: url('/g/bunny_3.png') no-repeat left top;
+}
+
+.bunny-4 {
+    background: url('/g/bunny_4.png') no-repeat left top;
+}
+
+.bunny-5 {
+    background: url('/g/bunny_5.png') no-repeat left top;
+}
+
+.farmer-0 {
+    background: url('/g/bunny_0.png') no-repeat left top;
+}
+
+.farmer-1 {
+    background: url('/g/farmer_1.png') no-repeat left top;
+}
+
+.farmer-2 {
+    background: url('/g/farmer_2.png') no-repeat left top;
+}
+
+.farmer-3 {
+    background: url('/g/farmer_3.png') no-repeat left top;
+}
+
+.farmer-4 {
+    background: url('/g/farmer_4.png') no-repeat left top;
+}
+
+.farmer-5 {
+    background: url('/g/farmer_5.png') no-repeat left top;
+}
