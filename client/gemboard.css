@@ -14,13 +14,13 @@
     overflow: hidden;
     opacity: 1;
     transition-property: left, top, opacity;
-    transition-duration: 0.2s;
+    transition-duration: 0.1s;
     -webkit-transition-property: left, top, opacity;
-    -webkit-transition-duration: 0.2s;
+    -webkit-transition-duration: 0.1s;
     -moz-transition-property: left, top, opacity;
-    -moz-transition-duration: 0.2s;
+    -moz-transition-duration: 0.1s;
     -ms-transition-property: left, top, opacity;
-    -ms-transition-duration: 0.2s;
+    -ms-transition-duration: 0.1s;
 }
 
 .destroyed {
@@ -52,7 +52,7 @@
 }
 
 .farmer-0 {
-    background: url('/g/bunny_0.png') no-repeat left top;
+    background: url('/g/farmer_0.png') no-repeat left top;
 }
 
 .farmer-1 {

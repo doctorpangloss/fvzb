@@ -12,6 +12,10 @@ Meteor.publish("currentGame",function(gameId) {
     return Games.find({_id:gameId});
 });
 
+Meteor.publish("gemsInGame",function(gameId) {
+    return Gems.find({gameId:gameId});
+});
+
 Meteor.publish("unitsInGame",function(gameId){
     return Units.find({gameId:gameId});
 });
@@ -28,5 +32,4 @@ Meteor.startup(function() {
     Games.remove({});
     Units.remove({});
     Gems.remove({});
-
 });
