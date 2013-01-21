@@ -39,10 +39,10 @@ var idPreserver = {
 var allowZoom = function(flag) {
     if (flag == true) {
         $('head meta[name=viewport]').remove();
-        $('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10.0, minimum-scale=1, user-scalable=1" />');
+        $('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10.0, minimum-scale=1.0, user-scalable=1" />');
     } else {
         $('head meta[name=viewport]').remove();
-        $('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=0" />');
+        $('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0" />');
     }
 };
 
@@ -91,7 +91,8 @@ Template.game.game = function() {
             allReady:g.bunny.ready && g.farmer.ready,
             waitingForPlayer:g.users.length < 2,
             amITheWinner:Session.equals(CURRENT_ROLE, g.winner),
-            winnerName:["","bunny","farmer"][g.winner]
+            winnerName:["","bunny","farmer"][g.winner],
+            amIBunny:Session.equals(CURRENT_ROLE,BUNNY)
         });
     } else {
         return null;

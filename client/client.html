@@ -110,7 +110,11 @@
                 <p style="text-align: center;">You are playing {{roleName}}. Waiting for another player...</p>
             {{else}}
                 {{#if allReady}}
-                    <p style="text-align: center;">Bunny {{bunny.life}} v. Farmer {{farmer.life}})</p>
+                    {{#if amIBunny}}
+                        <p style="text-align: center;">Life: {{bunny.life}} Farmer Life: {{farmer.life}}</p>
+                    {{else}}
+                        <p style="text-align: center;">Life: {{farmer.life}} Bunny Life: {{farmer.life}}</p>
+                    {{/if}}
                 {{else}}
                     <p style="text-align: center;">You are playing {{roleName}}. Your opponent is almost ready...</p>
                 {{/if}}
