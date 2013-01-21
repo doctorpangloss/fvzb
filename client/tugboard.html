@@ -1,7 +1,7 @@
 <template name="tugboard">
     <div id="tugboard">
         {{#each units}}
-            <a id="{{_id}}" href="#" class="unit {{destroyed}}" style="top: {{posY}}px; left: {{posX}}px;"></a>
+            <a id="{{_id}}" href="#" class="unit {{role}} color-{{color}} {{destroyed}}" style="top: {{posY}}px; left: {{posX}}px;"></a>
         {{/each}}
     </div>
 </template>

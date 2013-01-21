@@ -1,11 +1,16 @@
 #gemboard {
-    width:800px;
-    height:800px;
+    width:336px;
+    height:336px;
+    position:relative;
+    display:inline-block !important;
+    margin:0;
+    padding:0;
+    overflow:hidden;
 }
 
 .gem {
-    width: 96px;
-    height: 96px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     margin: 0;
     border: none;
@@ -13,6 +18,12 @@
     position: absolute;
     overflow: hidden;
     opacity: 1;
+    background-size: 100% 100%;
+    background-position: left top;
+    background-repeat: no-repeat;
+}
+
+.transitionable {
     transition-property: left, top, opacity;
     transition-duration: 0.1s;
     -webkit-transition-property: left, top, opacity;
@@ -23,54 +34,54 @@
     -ms-transition-duration: 0.1s;
 }
 
-.destroyed {
+.gem.destroyed {
     opacity: 0;
 }
 
-.bunny-0 {
-    background: url('/g/bunny_0.png') no-repeat left top;
+.gem.bunny.color-0 {
+    background-image: url('/g/bunny_0.png') ;
 }
 
-.bunny-1 {
-    background: url('/g/bunny_1.png') no-repeat left top;
+.gem.bunny.color-1 {
+    background-image: url('/g/bunny_1.png') ;
 }
 
-.bunny-2 {
-    background: url('/g/bunny_2.png') no-repeat left top;
+.gem.bunny.color-2 {
+    background-image: url('/g/bunny_2.png') ;
 }
 
-.bunny-3 {
-    background: url('/g/bunny_3.png') no-repeat left top;
+.gem.bunny.color-3 {
+    background-image: url('/g/bunny_3.png') ;
 }
 
-.bunny-4 {
-    background: url('/g/bunny_4.png') no-repeat left top;
+.gem.bunny.color-4 {
+    background-image: url('/g/bunny_4.png') ;
 }
 
-.bunny-5 {
-    background: url('/g/bunny_5.png') no-repeat left top;
+.gem.bunny.color-5 {
+    background-image: url('/g/bunny_5.png') ;
 }
 
-.farmer-0 {
-    background: url('/g/farmer_0.png') no-repeat left top;
+.gem.farmer.color-0 {
+    background-image: url('/g/farmer_0.png') ;
 }
 
-.farmer-1 {
-    background: url('/g/farmer_1.png') no-repeat left top;
+.gem.farmer.color-1 {
+    background-image: url('/g/farmer_1.png') ;
 }
 
-.farmer-2 {
-    background: url('/g/farmer_2.png') no-repeat left top;
+.gem.farmer.color-2 {
+    background-image: url('/g/farmer_2.png') ;
 }
 
-.farmer-3 {
-    background: url('/g/farmer_3.png') no-repeat left top;
+.gem.farmer.color-3 {
+    background-image: url('/g/farmer_3.png') ;
 }
 
-.farmer-4 {
-    background: url('/g/farmer_4.png') no-repeat left top;
+.gem.farmer.color-4 {
+    background-image: url('/g/farmer_4.png') ;
 }
 
-.farmer-5 {
-    background: url('/g/farmer_5.png') no-repeat left top;
+.gem.farmer.color-5 {
+    background-image: url('/g/farmer_5.png') ;
 }

@@ -15,11 +15,11 @@ Array.prototype.clone = function() {
 }
 
 
-COLORS = 6;
-GEM_BOARD_WIDTH = 7;
-GEM_BOARD_HEIGHT = 7;
-TUG_BOARD_WIDTH = 7;
-TUG_BOARD_HEIGHT = 7;
+COLORS = 5;
+GEM_BOARD_WIDTH = 6;
+GEM_BOARD_HEIGHT = 6;
+TUG_BOARD_WIDTH = 6;
+TUG_BOARD_HEIGHT = 3;
 STARTING_LIFE = 20;
 // How many milliseconds do we wait until we check the gemboard again for cascades? Used for animation too.
 GEM_BOARD_NEXT_EVALUATION_DELAY = 400;
@@ -55,7 +55,7 @@ GEM_BOARD_NEXT_EVALUATION_DELAY = 400;
 BUNNY = 1;
 FARMER = 2;
 
-var GAME_SCHEMA = function() {
+var Game = function() {
     this.name = "";
     this.bunny = {
         life:STARTING_LIFE
@@ -66,23 +66,28 @@ var GAME_SCHEMA = function() {
     this.users = [];
     // Get which role the user is playing
     this.roles = {};
-    this.secondsPerTileMoveSpeed = 2;
+    this.round = 0;
     this.closed = false;
 };
 
-var UNIT_SCHEMA = function() {
+var Unit = function() {
     this.gameId = "";
     this.role = BUNNY;
     this.x = 0;
     this.y = 0;
     this.color = 0;
-    this.gettingKilled = false;
+    this.destroyed = false;
     // Id of target when assigned.
     this.target = "";
     this.queued = false;
 };
 
-var GEM_SCHEMA = function() {
+var Target = function(_x,_y) {
+    this.x = _x;
+    this.y = _y;
+}
+
+var Gem = function() {
     this.gameId = "";
     this.role = BUNNY;
     this.x=0;
@@ -194,7 +199,7 @@ var generateGemboard = function(width,height,numColors) {
 var appendNewGemboardToGemCollection = function(gameId,role,rowMajor) {
     for (var y = 0; y < rowMajor.length; y++) {
         for (var x = 0; x < rowMajor[y].length; x++) {
-            var g = new GEM_SCHEMA();
+            var g = new Gem();
             g.x = x;
             // Places gems into a hidden area above where they are not evaluated but ready to be inserted into the main
             // gemboard field.
@@ -221,10 +226,6 @@ var isSwapValid = function(gameId,role,ax,ay,bx,by) {
     if (!((Math.abs(ax-bx) === 1 && Math.abs(ay-by) === 0) ||
         (Math.abs(ax-bx) === 0 && Math.abs(ay-by) === 1)))
         return false;
-
-    // For a simulation, return true to have a "bounce back" effect
-    if (Meteor.isSimulation)
-        return true;
 
     // Get gems
     var aQuery = Gems.find({gameId:gameId,role:role,$or:[{x:ax},{y:ay}]}).fetch();
@@ -338,8 +339,7 @@ var evaluateGemboard = function(gameId,role) {
     // Place units into the queue to be unqueued by a "tug" call later
     for (var color = 0; color < COLORS; color++) {
         for (var count = 0; count < colorsDestroyed[color]; count++) {
-            // If there is open space
-            var unit = new UNIT_SCHEMA();
+            var unit = new Unit();
             unit.color = color;
             unit.role = role;
             unit.queued = true;
@@ -367,9 +367,8 @@ Meteor.methods({
         }
 
         // Otherwise, create a new game
-        g = new GAME_SCHEMA();
+        g = new Game();
 
-        g.bunny.life =
         g.name = "Game #" + (Games.find({}).count() + 1).toString();
         g.users = [this.userId];
         g.roles[this.userId] = BUNNY;
@@ -429,7 +428,7 @@ Meteor.methods({
         return evaluateGemboard(gameId,role);
     },
 
-    // Advance the tug of war board one timestep and return a results object used for animation
+    // Advance the tug of war board one timestep (move units, make fighting happen, etc.)
     tug: function(gameId) {
         var g = getGame(gameId);
 
@@ -439,8 +438,9 @@ Meteor.methods({
         if (g.closed)
             throw new Meteor.Error(403,"The game is closed.");
 
-        if (!_.contains(g.users,this.userId))
-            throw new Meteor.Error(403,"You are not in this game.");
+        // Are we moving bunnies or farmers?
+        // BUNNY = 1, FARMER = 2
+        var moving = g.round % 2 + 1;
 
         // End the game if either player's life is less than 1
         if (g.bunny.life < 1 || g.farmer.life < 1) {
@@ -449,74 +449,72 @@ Meteor.methods({
         }
 
         // Blow up units marked to get killed
-        Units.remove({gameId:gameId,gettingKilled:true});
+        Units.remove({gameId:gameId,destroyed:true});
 
         // Move units
-        Units.update({gameId:gameId,queued:false,role:BUNNY},{$inc:{x:-1}},{multi:true});
-        Units.update({gameId:gameId,queued:false,role:FARMER},{$inc:{x:1}},{multi:true});
-
-        // Mark units off board to die and increment life counters
-        Units.update({gameId:gameId,queued:false,$or:[{x:{$gte:TUG_BOARD_WIDTH}},{x:{$lt:0}}]},
-            {$set:{gettingKilled:true}},{multi:true});
+        Units.update({gameId:gameId,queued:false,role:moving},{$inc:{x:[-1,1][moving-1]}},{multi:true});
 
         // Score units that made it to the other side
-        var farmerLifeLost = Units.find({gameId:gameId,queued:false,role:BUNNY,x:{$lt:0}}).count();
-        var bunnyLifeLost = Units.find({gameId:gameId,queued:false,role:FARMER,x:{$gte:TUG_BOARD_WIDTH}}).count();
+        var farmerLifeLost = Units.find({gameId:gameId,queued:false,destroyed:false,role:BUNNY,x:{$lt:0}}).count();
+        var bunnyLifeLost = Units.find({gameId:gameId,queued:false,destroyed:false,role:FARMER,x:{$gte:TUG_BOARD_WIDTH}}).count();
+
+        // Mark units off board to die and increment life counters
+        Units.update({gameId:gameId,queued:false,$or:[{role:FARMER,x:{$gte:TUG_BOARD_WIDTH}},{role:BUNNY,x:{$lt:0}}]},
+            {$set:{destroyed:true}},{multi:true});
 
         // Mark units that should kill each other.
-        // First, overlapping destruction.
-        for (var x = 0; x<TUG_BOARD_WIDTH; x++) {
-            for (var y = 0; y<TUG_BOARD_HEIGHT; y++) {
-                // TODO Situations where units of the same player overlap should be dealt with later
-                var query = {gameId:gameId,queued:false,gettingKilled:false,x:x,y:y};
-                var unitsCount = Units.find(query).count();
-                if (unitsCount > 2) {
-                    throw new Meteor.Error(500,"Units overlapping. check this out.");
-                } else if (unitsCount == 2) {
-                    Units.update(query,{$set:{gettingKilled:true}},{multi:true});
+        var units = Units.find({gameId:gameId,queued:false,destroyed:false}).fetch();
+        // Create a convenience lookup table of units in a grid
+        var unitsMatrix = matrix(units);
+        // A list of id's to mark for death
+        var toDie = [];
+
+        // If the units are in adjacent columns, the same row and opposite roles, they should kill each other.
+        for (var x = 0; x < TUG_BOARD_WIDTH+1; x++) {
+            for (var y = 0; y < TUG_BOARD_HEIGHT; y++) {
+                // If units are on adjacent columns and have opposing roles, mark them to die
+                if (unitsMatrix(x,y) && unitsMatrix(x-1,y) && unitsMatrix(x,y).role !== unitsMatrix(x-1,y).role) {
+                    toDie = toDie.concat([unitsMatrix(x,y)._id,unitsMatrix(x-1,y)._id]);
                 }
             }
         }
 
-        // Units on adjacent columns or equal rows should kill each other. Prevents units from "moving past" each other,
-        // where we would otherwise never destroy units that are opposing because they never share a column.
-        // Units that share the same space should also kill each other.
-        for (var column = 0; column < TUG_BOARD_WIDTH-1; column++) {
-            // If units share a column or an adjacent row, have opposite roles and the same color, pair off and mark
-            // to die.
-            var farmers = Units.find({gameId:gameId,queued:false,role:FARMER,x:{$in:[column,column+1]},gettingKilled:false}).fetch();
-            var bunnies = Units.find({gameId:gameId,queued:false,role:BUNNY,x:{$in:[column,column+1]},gettingKilled:false}).fetch();
+        // If the units are in the same column, different roles and same color, they should kill each other. This is the
+        // "color bonus" where same color units can kill each other side to side.
+        for (var x = 0; x < TUG_BOARD_WIDTH; x++) {
+            var farmers = _.filter(units,function (u) {return u.role === FARMER && u.x === x});
+            var bunnies = _.filter(units,function (u) {return u.role === BUNNY && u.x === x});
 
             _.each(farmers,function(farmer) {
                 _.each(bunnies,function(bunny) {
-                    if (farmer.color === bunny.color && !farmer.gettingKilled && !bunny.gettingKilled) {
-                        farmer.target = bunny._id;
-                        bunny.target = farmer._id;
-                        farmer.gettingKilled = true;
-                        bunny.gettingKilled = true;
+                    if (farmer.color === bunny.color && !farmer.destroyed && !bunny.destroyed) {
+                        toDie = toDie.concat([farmer._id,bunny._id]);
                     }
-                    bunny.evaluated = true;
                 });
-                farmer.evaluated = true;
-            });
-
-            // TODO Change to bulk update
-            _.each(farmers.concat(bunnies),function(unit) {
-                Units.update({_id:unit._id}, _.omit(unit,'_id'));
             });
         }
 
+        // Bulk update unit destruction
+        if (toDie.length > 1)
+            Units.update({_id:{$in:toDie}},{$set:{destroyed:true}},{multi:true});
+
+        // Increment lives and round calculated earlier
+        Games.update({_id:gameId},{$inc:{"bunny.life":-bunnyLifeLost,"farmer.life":-farmerLifeLost,round:1}});
+    },
+
+    // Spawn queued units onto the negative spaces behind and in front of the tugboard
+    spawn: function(gameId) {
         // Unqueue units
-        Units.find({gameId:gameId,queued:true}).forEach(function(unit){
+        _.each(Units.find({gameId:gameId,queued:true}).fetch(),function(unit){
             // Unit unqueueing is stochastic, so return on simulation
             if (Meteor.isSimulation)
                 return;
             // If the unit is a Bunny, it wants to go to the right of the tug of war board. Otherwise, the left.
-            var column = unit.role === BUNNY ? TUG_BOARD_WIDTH-1 : 0;
+            var column = unit.role === BUNNY ? TUG_BOARD_WIDTH : -1;
             // Find empty spaces to put the unit into
             var emptySpaces = _.difference( /*The difference between...*/
                 _.range(TUG_BOARD_HEIGHT) /*...Total Spaces...*/,
-                _.pluck(Units.find({x:column}).fetch(),"y" /*... and the occupied spaces in the specified columns*/));
+                _.pluck(Units.find({gameId:gameId,x:column}).fetch(),"y" /*... and the occupied rows in the specified column*/));
 
             // If there is at least one empty space
             if (emptySpaces && emptySpaces.length > 0) {
@@ -530,8 +528,5 @@ Meteor.methods({
             // Update the database
             Units.update({_id:unit._id}, _.omit(unit,'_id'));
         });
-
-        // Increment lives calculated earlier
-        Games.update({_id:gameId},{$inc:{"bunny.life":-bunnyLifeLost,"farmer.life":-farmerLifeLost}});
     }
 });

@@ -1,0 +1,147 @@
+#tugboard {
+    position:relative;
+    left:-15px;
+    top:-15px;
+    width:336px;
+    height:144px;
+    display:inline-block !important;
+    margin:0;
+    padding:0;
+    overflow:hidden;
+}
+
+.unit {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    display: block !important;
+    position: absolute;
+    overflow: hidden;
+    opacity: 1;
+    transition-property: left, top, opacity;
+    transition-duration: 0.2s;
+    -webkit-transition-property: left, top, opacity;
+    -webkit-transition-duration: 0.2s;
+    -moz-transition-property: left, top, opacity;
+    -moz-transition-duration: 0.2s;
+    -ms-transition-property: left, top, opacity;
+    -ms-transition-duration: 0.2s;
+}
+
+.unit.bunny {
+    background-size: 144px 48px;
+    -webkit-animation: bunnyWalking 0.6s steps(3) infinite;
+    -moz-animation: bunnyWalking 0.6s steps(3) infinite;
+    -ms-animation: bunnyWalking 0.6s steps(3) infinite;
+    -o-animation: bunnyWalking 0.6s steps(3) infinite;
+    animation: bunnyWalking 0.6s steps(3) infinite;
+}
+
+.unit.farmer {
+    background-size: 384px 48px;
+    -webkit-animation: farmerWalking 1.4s steps(8) infinite;
+    -moz-animation: farmerWalking 1.4s steps(8) infinite;
+    -ms-animation: farmerWalking 1.4s steps(8) infinite;
+    -o-animation: farmerWalking 1.4s steps(8) infinite;
+    animation: farmerWalking 1.4s steps(8) infinite;
+}
+
+.unit.farmer.color-0 {
+    background-image: url("/t/farmer_00000.png");
+}
+
+.unit.farmer.color-1 {
+    background-image: url("/t/farmer_00001.png");
+}
+
+.unit.farmer.color-2 {
+    background-image: url("/t/farmer_00002.png");
+}
+
+.unit.farmer.color-3 {
+    background-image: url("/t/farmer_00003.png");
+}
+
+.unit.farmer.color-4 {
+    background-image: url("/t/farmer_00004.png");
+}
+
+.unit.farmer.color-5 {
+    background-image: url("/t/farmer_00005.png");
+}
+
+.unit.bunny.color-0 {
+    background-image: url("/t/bunny_00000.png");
+}
+
+.unit.bunny.color-1 {
+    background-image: url("/t/bunny_00001.png");
+}
+
+.unit.bunny.color-2 {
+    background-image: url("/t/bunny_00002.png");
+}
+
+.unit.bunny.color-3 {
+    background-image: url("/t/bunny_00003.png");
+}
+
+.unit.bunny.color-4 {
+    background-image: url("/t/bunny_00004.png");
+}
+
+.unit.bunny.color-5 {
+    background-image: url("/t/bunny_00005.png");
+}
+
+@-webkit-keyframes farmerWalking {
+    from { background-position:    -768px; }
+    to { background-position: 0px; }
+}
+
+@-moz-keyframes farmerWalking {
+    from { background-position:    -768px; }
+    to { background-position: 0px; }
+}
+
+@-ms-keyframes farmerWalking {
+   from { background-position:    -768px; }
+     to { background-position: 0px; }
+}
+
+@-o-keyframes farmerWalking {
+    from { background-position:    -768px; }
+    to { background-position: 0px; }
+}
+
+@keyframes farmerWalking {
+    from { background-position:    -768px; }
+    to { background-position: 0px; }
+}
+
+@-webkit-keyframes bunnyWalking {
+    from { background-position:    0px; }
+    to { background-position: 288px; }
+}
+
+@-moz-keyframes bunnyWalking {
+    from { background-position:    0px; }
+    to { background-position: 288px; }
+}
+
+@-ms-keyframes bunnyWalking {
+   from { background-position:    0px; }
+     to { background-position: 288px; }
+}
+
+@-o-keyframes bunnyWalking {
+    from { background-position:    0px; }
+    to { background-position: 288px; }
+}
+
+@keyframes bunnyWalking {
+    from { background-position:    0px; }
+    to { background-position: 288px; }
+}

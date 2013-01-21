@@ -25,11 +25,32 @@ Meteor.publish("users",function(){
 });
 
 Meteor.startup(function() {
-    Units._ensureIndex({gameId:1,role:1});
+    Units._ensureIndex({gameId:1,role:1,x:1});
     Gems._ensureIndex({gameId:1,role:1,x:1,y:1});
     Gems._ensureIndex({gameId:1,role:1,y:1});
 
     Games.remove({});
     Units.remove({});
     Gems.remove({});
+
+    // Unit movements
+    Meteor.setInterval(function() {
+        _.each(_.pluck(Games.find({closed:false}).fetch(),'_id'),function(gameId){
+            Meteor.call("tug",gameId,function(e,r){
+                // Perform asynchronous spawn
+                if (e)
+                    console.log(e);
+            });
+        });
+    },800);
+    // Unit spawning
+    Meteor.setInterval(function() {
+        _.each(_.pluck(Games.find({closed:false}).fetch(),'_id'),function(gameId){
+            Meteor.call("spawn",gameId,function(e,r){
+                // Perform asynchronous spawn
+                if (e)
+                    console.log(e);
+            });
+        });
+    },1600);
 });

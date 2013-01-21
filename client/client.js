@@ -43,9 +43,17 @@ var matchMake = function() {
 Template.menu.created = createListviews;
 Template.menu.rendered = refreshListviews;
 
+Template.game.game = function() {
+    return getGame(Session.get(CURRENT_GAME));
+}
+
+Template.game.rendered = refreshListviews;
+
 var mutationObserver = {};
 
 Meteor.startup(function (){
+
+    // Get current role (cannot be used to cheat, just a shortcut)
     Meteor.autorun(function () {
         var g = getGame(Session.get(CURRENT_GAME));
 
@@ -61,7 +69,7 @@ Meteor.startup(function (){
     });
 
     mutationObserver = new MutationSummary({
-        queries: [{element:'[data-role="page"]',elementAttributes:'class'},{element:'[data-role="listview"]'},{element:'li'},{element:'[data-role="button"]'}],
+        queries: [{element:'[data-role="page"]',elementAttributes:'class'},{element:'[data-role="listview"]'},{element:'[data-role="button"]'}],
         callback: function(summaries) {
             refreshListviews();
         }

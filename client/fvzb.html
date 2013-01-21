@@ -10,7 +10,7 @@
         });
     </script>
     <script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
 </head>
@@ -34,7 +34,7 @@
 
     <div data-role="page" id="game" data-theme="a">
         <div data-role="content">
-            {{> gemboard}}
+            {{> game}}
         </div>
     </div>
 
@@ -96,6 +96,16 @@
         </div>
     </div>
 </body>
+
+<template name="game">
+    {{#if game}}
+        {{#with game}}
+            <p style="text-align: center;">Bunny {{bunny.life}} v. Farmer {{farmer.life}}</p>
+        {{/with}}
+    {{/if}}
+    {{> tugboard}}
+    {{> gemboard}}
+</template>
 
 <template name="menu">
     {{#if currentUser}}
