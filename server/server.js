@@ -4,7 +4,7 @@
  **/
 
 Meteor.publish("games",function(){
-    return Games.find({},{fields:{title:1,closed:1,users:1,roles:1,_id:1}});
+    return Games.find({});
 });
 
 Meteor.publish("currentGame",function(gameId) {

@@ -401,7 +401,7 @@ Meteor.methods({
 
     // Tell the server you're ready to play
     ready:function(gameId) {
-        var g = Games.findOne({closed:false});
+        var g = Games.findOne({closed:false,_id:gameId});
 
         if (!g)
             throw new Meteor.Error(404,"No game found.");
