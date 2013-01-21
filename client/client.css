@@ -2,3 +2,22 @@
     -webkit-touch-callout: none;
     -webkit-user-select: none; /* Disable selection/Copy of UIWebView */
 }
+
+.comic {
+    display:block;
+    width:320px;
+    background-size: 100% 100%;
+
+    margin-left:-15px !important;
+    margin-top:-15px !important;
+}
+
+.comic.bunny {
+    height:1280px;
+    background-image: url('/bunnyIntroBW.jpg');
+}
+
+.comic.farmer {
+    height:960px;
+    background-image: url('/farmerIntroBW.jpg');
+}

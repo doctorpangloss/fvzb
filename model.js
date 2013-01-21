@@ -58,15 +58,17 @@ FARMER = 2;
 var Game = function() {
     this.name = "";
     this.bunny = {
-        life:STARTING_LIFE
+        life:STARTING_LIFE,
+        ready:false
     };
     this.farmer = {
-        life:STARTING_LIFE
+        life:STARTING_LIFE,
+        ready:false
     };
     this.users = [];
     // Get which role the user is playing
     this.roles = {};
-    this.round = 0;
+    this.round = 1;
     this.closed = false;
 };
 
@@ -134,15 +136,24 @@ var threeEqual  = function(a,b,c) {
     return false;
 }
 
+// Check that the game is ready
+var gameReady = function(gameDocument) {
+    if (!gameDocument)
+        throw new Meteor.Error(404,"The game cannot be found");
 
-// New-style gemboard code
+    if (gameDocument.closed)
+        throw new Meteor.Error(403,"The game is closed.");
 
-var rowMajorSort = function(a,b) {
-    return (a.y - b.y)*GEM_BOARD_WIDTH+(a.x - b.x);
-}
+    if (gameDocument.users.length < 2)
+        throw new Meteor.Error(500,"Waiting for someone to join the game...");
 
-var columnMajorSort = function(a,b) {
-    return (a.x - b.x)*GEM_BOARD_HEIGHT+(a.y - b.y);
+    if (!gameDocument.bunny.ready)
+        throw new Meteor.Error(500,"The Bunny isn't ready to play yet.");
+
+    if (!gameDocument.farmer.ready)
+        throw new Meteor.Error(500,"The Farmer isn't ready to play yet.");
+
+    return true;
 }
 
 // Creates a sparse matrix as a function with mutable data and immutable structure
@@ -355,13 +366,13 @@ Meteor.methods({
     // Join a 1 player game. Otherwise, start a new game and wait. By convention, first player is bunny.
     startGame: function() {
         // Find a 1 player game.
-        var g = Games.findOne({$where:"this.users.length < 2",closed:false});
+        var g = Games.findOne({closed:false,full:false});
 
         // Join the game if found.
         if (g) {
             if (!_.has(g.roles,this.userId))
                 g.roles[this.userId] = FARMER;
-            Games.update({"_id":g._id},{$addToSet:{users:this.userId},$set:{roles:g.roles}});
+            Games.update({"_id":g._id},{$addToSet:{users:this.userId},$set:{roles:g.roles,full:true}});
             // Return the game id.
             return g._id;
         }
@@ -372,11 +383,11 @@ Meteor.methods({
         g.name = "Game #" + (Games.find({}).count() + 1).toString();
         g.users = [this.userId];
         g.roles[this.userId] = BUNNY;
+        g.full=false;
 
         var gameId = Games.insert(g);
 
         // Initialize gemboards
-
         if (!gameId)
             throw new Meteor.Error(500,"Game was not created.");
 
@@ -386,23 +397,34 @@ Meteor.methods({
         return gameId;
     },
 
+    // Tell the server you're ready to play
+    ready:function(gameId) {
+        var g = Games.findOne({closed:false});
+
+        if (!g)
+            throw new Meteor.Error(404,"No game found.");
+
+        var role = getRole(g,this.userId);
+
+        if (!role)
+            throw new Meteor.Error(500,"You have not been assigned a role.");
+
+        var update = {};
+        update[(role === BUNNY ? 'bunny.' : 'farmer.') + 'ready'] = true;
+        Games.update({_id:gameId},{$set:update});
+    },
+
     // Test a swap and return true if it satisfies conditions
     swap: function(gameId,ax,ay,bx,by) {
         var g = getGame(gameId);
 
-        if (!g)
-            throw new Meteor.Error(404,"The game cannot be found");
-
-        if (g.closed)
-            throw new Meteor.Error(403,"The game is closed.");
-
-        if (!_.contains(g.users,this.userId))
-            throw new Meteor.Error(403,"You are not in this game.");
+        gameReady(g);
 
         var role = getRole(g,this.userId);
 
         if (!role)
             throw new Meteor.Error(500,"No role was assigned or one was not found.");
+
 
         return swap(gameId,role,ax,ay,bx,by);
     },
@@ -411,14 +433,7 @@ Meteor.methods({
     evaluate: function(gameId) {
         var g = getGame(gameId);
 
-        if (!g)
-            throw new Meteor.Error(404,"The game cannot be found");
-
-        if (g.closed)
-            throw new Meteor.Error(403,"The game is closed.");
-
-        if (!_.contains(g.users,this.userId))
-            throw new Meteor.Error(403,"You are not in this game.");
+        gameReady(g);
 
         var role = getRole(g,this.userId);
 
@@ -432,11 +447,7 @@ Meteor.methods({
     tug: function(gameId) {
         var g = getGame(gameId);
 
-        if (!g)
-            throw new Meteor.Error(404,"The game cannot be found");
-
-        if (g.closed)
-            throw new Meteor.Error(403,"The game is closed.");
+        gameReady(g);
 
         // Are we moving bunnies or farmers?
         // BUNNY = 1, FARMER = 2
@@ -504,6 +515,10 @@ Meteor.methods({
 
     // Spawn queued units onto the negative spaces behind and in front of the tugboard
     spawn: function(gameId) {
+        var g = getGame(gameId);
+
+        gameReady(g);
+
         // Unqueue units
         _.each(Units.find({gameId:gameId,queued:true}).fetch(),function(unit){
             // Unit unqueueing is stochastic, so return on simulation

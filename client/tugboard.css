@@ -1,13 +1,13 @@
 #tugboard {
     position:relative;
-    left:-15px;
-    top:-15px;
-    width:336px;
+    width:288px;
     height:144px;
-    display:inline-block !important;
+    display:block !important;
     margin:0;
     padding:0;
     overflow:hidden;
+    margin-left:auto;
+    margin-right:auto;
 }
 
 .unit {

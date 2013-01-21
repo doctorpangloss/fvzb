@@ -35,7 +35,7 @@ Meteor.startup(function() {
 
     // Unit movements
     Meteor.setInterval(function() {
-        _.each(_.pluck(Games.find({closed:false}).fetch(),'_id'),function(gameId){
+        _.each(_.pluck(Games.find({closed:false, full:true, "bunny.ready":true, "farmer.ready":true}).fetch(),'_id'),function(gameId){
             Meteor.call("tug",gameId,function(e,r){
                 // Perform asynchronous spawn
                 if (e)
@@ -45,7 +45,7 @@ Meteor.startup(function() {
     },800);
     // Unit spawning
     Meteor.setInterval(function() {
-        _.each(_.pluck(Games.find({closed:false}).fetch(),'_id'),function(gameId){
+        _.each(_.pluck(Games.find({closed:false, full:true, "bunny.ready":true, "farmer.ready":true}).fetch(),'_id'),function(gameId){
             Meteor.call("spawn",gameId,function(e,r){
                 // Perform asynchronous spawn
                 if (e)

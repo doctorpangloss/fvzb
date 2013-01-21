@@ -2,10 +2,12 @@
     width:336px;
     height:336px;
     position:relative;
-    display:inline-block !important;
+    display:block !important;
     margin:0;
     padding:0;
     overflow:hidden;
+    margin-left:auto;
+    margin-right:auto;
 }
 
 .gem {
@@ -18,24 +20,29 @@
     position: absolute;
     overflow: hidden;
     opacity: 1;
+    zoom: 100%;
     background-size: 100% 100%;
     background-position: left top;
     background-repeat: no-repeat;
 }
 
 .transitionable {
-    transition-property: left, top, opacity;
+    transition-property: left, top, opacity, zoom;
     transition-duration: 0.1s;
-    -webkit-transition-property: left, top, opacity;
+    -webkit-transition-property: left, top, opacity, zoom;
     -webkit-transition-duration: 0.1s;
-    -moz-transition-property: left, top, opacity;
+    -moz-transition-property: left, top, opacity, zoom;
     -moz-transition-duration: 0.1s;
-    -ms-transition-property: left, top, opacity;
+    -ms-transition-property: left, top, opacity, zoom;
     -ms-transition-duration: 0.1s;
 }
 
 .gem.destroyed {
     opacity: 0;
+}
+
+.gem.selected {
+    zoom: 103%;
 }
 
 .gem.bunny.color-0 {

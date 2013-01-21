@@ -6,8 +6,11 @@
 var GEM_TILE_SIZE = 48;
 
 var touchEventData = {};
+var clickEventData = null;
 
-Template.gemboard.events = {
+Template.gemboard.events =
+// Touch is enabled, enable the nice drag and dropping illusion
+TOUCH_ENABLED ? {
     'touchstart a':function(event) {
         // Prevent scrolling
         event.preventDefault();
@@ -57,6 +60,22 @@ Template.gemboard.events = {
     'touchend a':function(event) {
         touchEventData.processed = false;
     }
+// Touch is not enabled, use mouse controls for gemboard
+} : {
+    'click a':function(event) {
+        if (clickEventData === null) {
+            clickEventData = {
+                ax:this.x,
+                ay:this.y,
+                aId:this._id
+            }
+            $(event.currentTarget).addClass('selected');
+        } else {
+            $('#' + clickEventData.aId).removeClass('selected');
+            swapAndEvaluate(clickEventData.ax,clickEventData.ay,this.x,this.y);
+            clickEventData = null;
+        }
+    }
 };
 
 Template.gemboard.preserve({
@@ -89,6 +108,8 @@ var simulateSwap = function(ax,ay,bx,by) {
     }
 
     // Get the tiles
+    // On Mobile Safari, "+" queries don't seem to work very well, so a workaround using
+    // class names was used instead.
     var aTile = $('.posX'+ax.toString()+".posY"+ay.toString());
     var bTile = $('.posX'+bx.toString()+".posY"+by.toString());
 
@@ -138,3 +159,6 @@ var TRANSITION_END_EVENT = (function (){
         }
     }
 })();
+
+// Is touch enabled?
+var TOUCH_ENABLED = 'ontouchstart' in window;

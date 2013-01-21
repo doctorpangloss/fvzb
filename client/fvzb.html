@@ -45,21 +45,20 @@
         </div>
     </div>
 
+    <div data-role="page" id="intro" data-theme="a">
+        <div data-role="content">
+            {{> intro}}
+        </div>
+    </div>
+
     <div data-role="page" id="login" data-theme="a">
         <div data-role="content">
             <div data-role="collapsible-set">
                 <div data-role="collapsible" data-collapsed="false">
-                    <h3>Login with Facebook or Google</h3>
+                    <h3>Login Now</h3>
                     <a href="#" data-role="button" data-icon="arrow-r" onclick="loginWithFacebook()">Login with Facebook</a>
                     <a href="#" data-role="button" data-icon="arrow-r" onclick="loginWithGoogle()">Login with Google</a>
-                </div>
-                <div data-role="collapsible">
-                    <h3>Play Anonymously</h3>
-                    <form>
-                        <label for="anonymousNickname" class="ui-hidden-accessible">Nickname</label>
-                        <input type="text" name="anonymousNickname" id="anonymousNickname" value="" placeholder="Nickname"/>
-                    </form>
-                    <a href="#" data-role="button" data-icon="arrow-r" onclick="loginAnonymously()">Login Anonymously</a>
+                    <a data-role="button" data-icon="arrow-r" onclick="loginAnonymously()" href="#">Login Anonymously</a>
                 </div>
                 <div data-role="collapsible">
                     <h3>Create An Account</h3>
@@ -100,7 +99,15 @@
 <template name="game">
     {{#if game}}
         {{#with game}}
-            <p style="text-align: center;">Bunny {{bunny.life}} v. Farmer {{farmer.life}}</p>
+            {{#if waitingForPlayer}}
+                <p style="text-align: center;">You are playing {{roleName}}. Waiting for another player...</p>
+            {{else}}
+                {{#if allReady}}
+                    <p style="text-align: center;">Bunny {{bunny.life}} v. Farmer {{farmer.life}})</p>
+                {{else}}
+                    <p style="text-align: center;">You are playing {{roleName}}. Your opponent is almost ready...</p>
+                {{/if}}
+            {{/if}}
         {{/with}}
     {{/if}}
     {{> tugboard}}
@@ -109,7 +116,7 @@
 
 <template name="menu">
     {{#if currentUser}}
-        <li class="ui-btn-up-b"><a id="matchButton" href="#game" onclick="matchMake()">Play Now</a></li>
+        <li class="ui-btn-up-b"><a id="matchButton" href="#" onclick="matchMake()">Play Now</a></li>
         <li><a href="#" onclick="Meteor.logout()">Logout</a></li>
     {{else}}
         <li><a href="#login">Play Now</a></li>
@@ -129,4 +136,16 @@
     {{#if error}}
         <p>{{error}}</p>
     {{/if}}
+</template>
+
+<template name="intro">
+    {{#if game}}
+        {{#with game}}
+            <div id="theComic" class="comic {{roleName}}"></div>
+            <p style="text-align: center;">Welcome {{roleName}}. Prepare for the onslaught of death.</p>
+        {{/with}}
+    {{/if}}
+    <h3>How To Play</h3>
+
+    <a href="#game" data-role="button" data-icon="check" onclick="imReady()">Ready!</a>
 </template>

@@ -21,16 +21,23 @@ var refreshListviews = function() {
     $('[data-role="button"]:visible').button();
 }
 
-
-
 /*
 * General
 * */
 
 var matchMake = function() {
     Meteor.call("startGame",function(e,r){
-        if (r)
+        if (r) {
             Session.set(CURRENT_GAME,r);
+            $.mobile.changePage('#intro');
+        }
+        if (e)
+            console.log(e);
+    });
+}
+
+var imReady = function() {
+    Meteor.call('ready',Session.get(CURRENT_GAME),function(e,r){
         if (e)
             console.log(e);
     });
@@ -44,11 +51,33 @@ Template.menu.created = createListviews;
 Template.menu.rendered = refreshListviews;
 
 Template.game.game = function() {
-    return getGame(Session.get(CURRENT_GAME));
+    var g = getGame(Session.get(CURRENT_GAME));
+    if (g) {
+        return _.extend(g,{
+            roleName:Session.equals(CURRENT_ROLE,BUNNY) ? 'bunny' : 'farmer',
+            allReady:g.bunny.ready && g.farmer.ready,
+            waitingForPlayer:g.users.length < 2
+        });
+    } else {
+        return null;
+    }
 }
 
 Template.game.rendered = refreshListviews;
 
+Template.intro.game = Template.game.game;
+Template.intro.preserve({
+    'div[id]':function(node) {
+        return node.id;
+    }
+});
+Template.intro.rendered = refreshListviews;
+
+/**
+ * Startup
+ * **/
+
+// Used to update jQueryMobile widgets
 var mutationObserver = {};
 
 Meteor.startup(function (){
@@ -68,6 +97,7 @@ Meteor.startup(function (){
         Session.set(CURRENT_ROLE,r);
     });
 
+    // Refresh jQueryMobile interface on UI changes
     mutationObserver = new MutationSummary({
         queries: [{element:'[data-role="page"]',elementAttributes:'class'},{element:'[data-role="listview"]'},{element:'[data-role="button"]'}],
         callback: function(summaries) {
