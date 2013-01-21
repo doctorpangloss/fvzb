@@ -51,6 +51,13 @@
         </div>
     </div>
 
+    <div data-role="page" id="winner" data-theme="a">
+        <div data-role="content">
+            {{> winner}}
+        </div>
+    </div>
+
+
     <div data-role="page" id="login" data-theme="a">
         <div data-role="content">
             <div data-role="collapsible-set">
@@ -142,10 +149,32 @@
     {{#if game}}
         {{#with game}}
             <div id="theComic" class="comic {{roleName}}"></div>
-            <p style="text-align: center;">Welcome {{roleName}}. Prepare for the onslaught of death.</p>
+            <p>Welcome {{roleName}}. Prepare for the onslaught of death.</p>
+            <h3>How To Play</h3>
+            <p>Match three pieces to earn a fighting {{roleName}}!</p>
+            <p>To match, drag a piece up, down, left or right to make three consecutive pieces of the same color. If you
+                can't match, the piece will bounce back where it was.</p>
+            <p>When you match, you'll earn a {{roleName}} of the color you matched. Match more to earn an extra {{roleName}}.</p>
+            <p>Your {{roleName}} fights in a lane. If your {{roleName}} runs into a {{oppositeName}}, they'll fight and die.</p>
+            <p>Bonus: A red {{roleName}} will also fight a red {{oppositeName}} even in a different lane. Bunnies and farmers
+                of the same color will fight each other regardless of lanes. If you can, try to match three pieces whose color is
+                the same as a {{oppositeName}} in the lanes.</p>
         {{/with}}
     {{/if}}
-    <h3>How To Play</h3>
 
     <a href="#game" data-role="button" data-icon="check" onclick="imReady()">Ready!</a>
+</template>
+
+<template name="winner">
+    {{#if game}}
+        {{#with game}}
+            <div id="winningComic" class="winner {{winnerName}}"></div>
+            {{#if amITheWinner}}
+                <h3>You won!</h3>
+            {{else}}
+                <h3>You lost.</h3>
+            {{/if}}
+        {{/with}}
+    {{/if}}
+    <a href="#home" data-role="button" data-icon="arrow-r" onclick="quit()">Quit</a>
 </template>

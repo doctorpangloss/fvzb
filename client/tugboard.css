@@ -20,14 +20,14 @@
     position: absolute;
     overflow: hidden;
     opacity: 1;
-    transition-property: left, top, opacity;
-    transition-duration: 0.2s;
-    -webkit-transition-property: left, top, opacity;
-    -webkit-transition-duration: 0.2s;
-    -moz-transition-property: left, top, opacity;
-    -moz-transition-duration: 0.2s;
-    -ms-transition-property: left, top, opacity;
-    -ms-transition-duration: 0.2s;
+    transition-property: transform, opacity;
+    transition-duration: 0.25s;
+    -webkit-transition-property: -webkit-transform, opacity;
+    -webkit-transition-duration: 0.25s;
+    -moz-transition-property: transform, opacity;
+    -moz-transition-duration: 0.25s;
+    -ms-transition-property: -ms-transform, opacity;
+    -ms-transition-duration: 0.25s;
 }
 
 .unit.bunny {
@@ -39,13 +39,33 @@
     animation: bunnyWalking 0.6s steps(3) infinite;
 }
 
+.unit.bunny.destroyed {
+    background-size: 48px 48px !important;
+    -webkit-animation: bunnyDying 0.1s steps(2) 0.25s infinite;
+    -moz-animation: bunnyDying 0.1s steps(2) 0.25s infinite;
+    -ms-animation: bunnyDying 0.1s steps(2) 0.25s infinite;
+    -o-animation: bunnyDying 0.1s steps(2) 0.25s infinite;
+    animation: bunnyDying 0.1s steps(2) 0.25s infinite;
+}
+
+/*Unclear why this should be 16 steps and not 8...*/
 .unit.farmer {
     background-size: 384px 48px;
-    -webkit-animation: farmerWalking 1.4s steps(8) infinite;
-    -moz-animation: farmerWalking 1.4s steps(8) infinite;
-    -ms-animation: farmerWalking 1.4s steps(8) infinite;
-    -o-animation: farmerWalking 1.4s steps(8) infinite;
-    animation: farmerWalking 1.4s steps(8) infinite;
+    -webkit-animation: farmerWalking 1.4s steps(16) infinite;
+    -moz-animation: farmerWalking 1.4s steps(16) infinite;
+    -ms-animation: farmerWalking 1.4s steps(16) infinite;
+    -o-animation: farmerWalking 1.4s steps(16) infinite;
+    animation: farmerWalking 1.4s steps(16) infinite;
+}
+
+/*CSS interpretation of background size w.r.t. animations is ambiguous*/
+.unit.farmer.destroyed {
+    background-size: 464px 64px !important;
+    -webkit-animation: farmerDying 0.5s steps(7) 0.25s 0;
+    -moz-animation: farmerDying 0.5s steps(7) 0.25s 0;
+    -ms-animation: farmerDying 0.5s steps(7) 0.25s 0;
+    -o-animation: farmerDying 0.5s steps(7) 0.25s 0;
+    animation: farmerDying 0.5s steps(7) 0.25s 0;
 }
 
 .unit.farmer.color-0 {
@@ -72,6 +92,30 @@
     background-image: url("/t/farmer_00005.png");
 }
 
+.unit.farmer.color-0.destroyed {
+    background-image: url("/t/farmer-dying_00000.png");
+}
+
+.unit.farmer.color-1.destroyed {
+    background-image: url("/t/farmer-dying_00001.png");
+}
+
+.unit.farmer.color-2.destroyed {
+    background-image: url("/t/farmer-dying_00002.png");
+}
+
+.unit.farmer.color-3.destroyed {
+    background-image: url("/t/farmer-dying_00003.png");
+}
+
+.unit.farmer.color-4.destroyed {
+    background-image: url("/t/farmer-dying_00004.png");
+}
+
+.unit.farmer.color-5.destroyed {
+    background-image: url("/t/farmer-dying_00005.png");
+}
+
 .unit.bunny.color-0 {
     background-image: url("/t/bunny_00000.png");
 }
@@ -96,28 +140,77 @@
     background-image: url("/t/bunny_00005.png");
 }
 
+.unit.bunny.color-0.destroyed {
+    background-image: url("/t/bunny-dying_00000.png");
+}
+
+.unit.bunny.color-1.destroyed {
+    background-image: url("/t/bunny-dying_00001.png");
+}
+
+.unit.bunny.color-2.destroyed {
+    background-image: url("/t/bunny-dying_00002.png");
+}
+
+.unit.bunny.color-3.destroyed {
+    background-image: url("/t/bunny-dying_00003.png");
+}
+
+.unit.bunny.color-4.destroyed {
+    background-image: url("/t/bunny-dying_00004.png");
+}
+
+.unit.bunny.color-5.destroyed {
+    background-image: url("/t/bunny-dying_00005.png");
+}
+
 @-webkit-keyframes farmerWalking {
-    from { background-position:    -768px; }
+    from { background-position:    768px; }
     to { background-position: 0px; }
 }
 
 @-moz-keyframes farmerWalking {
-    from { background-position:    -768px; }
+    from { background-position:    768px; }
     to { background-position: 0px; }
 }
 
 @-ms-keyframes farmerWalking {
-   from { background-position:    -768px; }
+   from { background-position:    768px; }
      to { background-position: 0px; }
 }
 
 @-o-keyframes farmerWalking {
-    from { background-position:    -768px; }
+    from { background-position:    768px; }
     to { background-position: 0px; }
 }
 
 @keyframes farmerWalking {
-    from { background-position:    -768px; }
+    from { background-position:    768px; }
+    to { background-position: 0px; }
+}
+
+@-webkit-keyframes farmerDying {
+    from { background-position:    -464px; }
+    to { background-position: 0px; }
+}
+
+@-moz-keyframes farmerDying {
+    from { background-position:    -928px; }
+    to { background-position: 0px; }
+}
+
+@-ms-keyframes farmerDying {
+   from { background-position:    -928px; }
+     to { background-position: 0px; }
+}
+
+@-o-keyframes farmerDying {
+    from { background-position:    -928px; }
+    to { background-position: 0px; }
+}
+
+@keyframes farmerDying {
+    from { background-position:    -928px; }
     to { background-position: 0px; }
 }
 
@@ -144,4 +237,29 @@
 @keyframes bunnyWalking {
     from { background-position:    0px; }
     to { background-position: 288px; }
+}
+
+@-webkit-keyframes bunnyDying {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@-moz-keyframes bunnyDying {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@-ms-keyframes bunnyDying {
+   from { opacity: 1; }
+     to { opacity: 0; }
+}
+
+@-o-keyframes bunnyDying {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes bunnyDying {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }

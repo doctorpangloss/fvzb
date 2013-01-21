@@ -69,6 +69,8 @@ var Game = function() {
     // Get which role the user is playing
     this.roles = {};
     this.round = 1;
+    // No winner set by default
+    this.winner = 0;
     this.closed = false;
 };
 
@@ -455,7 +457,7 @@ Meteor.methods({
 
         // End the game if either player's life is less than 1
         if (g.bunny.life < 1 || g.farmer.life < 1) {
-            Games.update({_id:gameId},{$set:{closed:true}});
+            Games.update({_id:gameId},{$set:{closed:true,winner:g.bunny.life < 1 ? FARMER : BUNNY}});
             return;
         }
 

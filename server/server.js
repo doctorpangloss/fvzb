@@ -8,12 +8,21 @@ Meteor.publish("games",function(){
 });
 
 Meteor.publish("currentGame",function(gameId) {
-    // TODO Hide secret information like gemboard from opponents.
     return Games.find({_id:gameId});
 });
 
 Meteor.publish("gemsInGame",function(gameId) {
-    return Gems.find({gameId:gameId});
+    var g = Games.findOne({_id:gameId});
+
+    if (!g)
+        return;
+
+    if (this.userId && _.contains(g.users,this.userId)) {
+        var role = getRole(g,this.userId);
+        return Gems.find({gameId:gameId,role:role});
+    } else {
+        return;
+    }
 });
 
 Meteor.publish("unitsInGame",function(gameId){

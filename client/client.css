@@ -3,6 +3,11 @@
     -webkit-user-select: none; /* Disable selection/Copy of UIWebView */
 }
 
+body {
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+}
+
 .comic {
     display:block;
     width:320px;
@@ -20,4 +25,21 @@
 .comic.farmer {
     height:960px;
     background-image: url('/farmerIntroBW.jpg');
+}
+
+.winner {
+    display:block;
+    width:320px;
+    height:240px;
+    background-size: 100% 100%;
+    margin-left:-15px !important;
+    margin-top:-15px !important;
+}
+
+.winner.bunny {
+    background-image: url('/bunnyWinsBW.jpg');
+}
+
+.winner.farmer {
+    background-image: url('/farmerWinsBW.jpg');
 }

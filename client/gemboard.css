@@ -27,13 +27,13 @@
 }
 
 .transitionable {
-    transition-property: left, top, opacity, zoom;
+    transition-property: transform, opacity, zoom;
     transition-duration: 0.1s;
-    -webkit-transition-property: left, top, opacity, zoom;
+    -webkit-transition-property: -webkit-transform, opacity, zoom;
     -webkit-transition-duration: 0.1s;
-    -moz-transition-property: left, top, opacity, zoom;
+    -moz-transition-property: transform, opacity, zoom;
     -moz-transition-duration: 0.1s;
-    -ms-transition-property: left, top, opacity, zoom;
+    -ms-transition-property: -ms-transform, opacity, zoom;
     -ms-transition-duration: 0.1s;
 }
 

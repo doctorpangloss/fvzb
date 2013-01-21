@@ -1,7 +1,7 @@
 <template name="gemboard">
     <div id="gemboard">
         {{#each gems}}
-            <a id="{{_id}}" href="#" class="gem {{role}} color-{{color}} {{destroyed}} posX{{x}} posY{{y}} transitionable" style="top: {{posY}}px; left: {{posX}}px;" data-gem-x="{{x}}" data-gem-y="{{y}}"></a>
+            <a id="{{_id}}" href="#" class="gem {{role}} color-{{color}} {{destroyed}} posX{{x}} posY{{y}} transitionable" style="-webkit-transform: translate3d({{posX}}px, {{posY}}px, 0px); transform: translate3d({{posX}}px, {{posY}}px, 0px);" data-gem-x="{{x}}" data-gem-y="{{y}}"></a>
         {{/each}}
     </div>
 </template>

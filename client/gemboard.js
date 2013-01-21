@@ -8,6 +8,51 @@ var GEM_TILE_SIZE = 48;
 var touchEventData = {};
 var clickEventData = null;
 
+// Gets the kind of transition event for this browser
+// Adapted from below
+// @author lorenzopolidori
+// https://gist.github.com/3794226
+var TRANSITION_END_EVENT = (function (){
+    var t;
+    var el = document.createElement('fakeelement');
+    var transitions = {
+        'transition':'transitionend',
+        'OTransition':'oTransitionEnd',
+        'MozTransition':'transitionend',
+        'WebkitTransition':'webkitTransitionEnd'
+    }
+
+    for(t in transitions){
+        if( el.style[t] !== undefined ){
+            return transitions[t];
+        }
+    }
+})();
+
+// Gets the kind of transform style for this browser
+// @author lorenzopolidori
+// https://gist.github.com/3794226
+var PREFIXED_TRANSFORM = (function () {
+    var t;
+    var el = document.createElement('fakeelement');
+    var transforms = {
+        'transform':'transform',
+        'msTransform':'-ms-transform',
+        'OTransform':'-o-transform',
+        'MozTransform':'-moz-transform',
+        'WebkitTransform':'-webkit-transform'
+    }
+
+    for(t in transforms){
+        if( el.style[t] !== undefined ){
+            return transforms[t];
+        }
+    }
+})();
+
+// Is touch enabled?
+var TOUCH_ENABLED = 'ontouchstart' in window;
+
 Template.gemboard.events =
 // Touch is enabled, enable the nice drag and dropping illusion
 TOUCH_ENABLED ? {
@@ -102,8 +147,10 @@ var simulateSwap = function(ax,ay,bx,by) {
     // An event handler when the failed swap transition ends
     var reverseSwap = function(event) {
         var tile = $(this);
-        tile.css({left:parseInt(tile.attr('data-gem-x'))*GEM_TILE_SIZE,
-            top:parseInt(tile.attr('data-gem-y'))*GEM_TILE_SIZE});
+        var css = {};
+        css[PREFIXED_TRANSFORM] = 'translate3d('+parseInt(tile.attr('data-gem-x'))*GEM_TILE_SIZE+
+            "px, "+parseInt(tile.attr('data-gem-y'))*GEM_TILE_SIZE+"px, 0px)";
+        tile.css(css);
         this.removeEventListener(TRANSITION_END_EVENT,arguments.callee,false);
     }
 
@@ -118,8 +165,13 @@ var simulateSwap = function(ax,ay,bx,by) {
     bTile[0].addEventListener(TRANSITION_END_EVENT,reverseSwap,false);
 
     // Change the positions, triggering a transition animation
-    aTile.css({left:bx*GEM_TILE_SIZE,top:by*GEM_TILE_SIZE});
-    bTile.css({left:ax*GEM_TILE_SIZE,top:ay*GEM_TILE_SIZE});
+    var aTileCSS = {};
+    var bTileCSS = {};
+    aTileCSS[PREFIXED_TRANSFORM] = 'translate3d('+bx*GEM_TILE_SIZE +"px, "+by*GEM_TILE_SIZE+"px, 0px)";
+    bTileCSS[PREFIXED_TRANSFORM] = 'translate3d('+ax*GEM_TILE_SIZE +"px, "+ay*GEM_TILE_SIZE+"px, 0px)";
+
+    aTile.css(aTileCSS);
+    bTile.css(bTileCSS);
 
     return true;
 }
@@ -142,23 +194,3 @@ var swapAndEvaluate = function(ax,ay,bx,by) {
     });
 }
 
-// Gets the kind of transition event for this browser
-var TRANSITION_END_EVENT = (function (){
-    var t;
-    var el = document.createElement('fakeelement');
-    var transitions = {
-        'transition':'transitionend',
-        'OTransition':'oTransitionEnd',
-        'MozTransition':'transitionend',
-        'WebkitTransition':'webkitTransitionEnd'
-    }
-
-    for(t in transitions){
-        if( el.style[t] !== undefined ){
-            return transitions[t];
-        }
-    }
-})();
-
-// Is touch enabled?
-var TOUCH_ENABLED = 'ontouchstart' in window;
