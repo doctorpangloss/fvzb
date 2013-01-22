@@ -42,7 +42,7 @@ Meteor.startup(function() {
     Units.remove({});
     Gems.remove({});
 
-    // Unit movements
+    // Unit movements and spawn
     Meteor.setInterval(function() {
         _.each(_.pluck(Games.find({closed:false, full:true, "bunny.ready":true, "farmer.ready":true}).fetch(),'_id'),function(gameId){
             Meteor.call("tug",gameId,function(e,r){
@@ -52,14 +52,4 @@ Meteor.startup(function() {
             });
         });
     },800);
-    // Unit spawning
-    Meteor.setInterval(function() {
-        _.each(_.pluck(Games.find({closed:false, full:true, "bunny.ready":true, "farmer.ready":true}).fetch(),'_id'),function(gameId){
-            Meteor.call("spawn",gameId,function(e,r){
-                // Perform asynchronous spawn
-                if (e)
-                    console.log(e);
-            });
-        });
-    },1600);
 });

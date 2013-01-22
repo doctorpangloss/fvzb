@@ -511,16 +511,6 @@ Meteor.methods({
         if (toDie.length > 1)
             Units.update({_id:{$in:toDie}},{$set:{destroyed:true}},{multi:true});
 
-        // Increment lives and round calculated earlier
-        Games.update({_id:gameId},{$inc:{"bunny.life":-bunnyLifeLost,"farmer.life":-farmerLifeLost,round:1}});
-    },
-
-    // Spawn queued units onto the negative spaces behind and in front of the tugboard
-    spawn: function(gameId) {
-        var g = getGame(gameId);
-
-        gameReady(g);
-
         // Unqueue units
         _.each(Units.find({gameId:gameId,queued:true}).fetch(),function(unit){
             // Unit unqueueing is stochastic, so return on simulation
@@ -545,5 +535,8 @@ Meteor.methods({
             // Update the database
             Units.update({_id:unit._id}, _.omit(unit,'_id'));
         });
+
+        // Increment lives and round calculated earlier
+        Games.update({_id:gameId},{$inc:{"bunny.life":-bunnyLifeLost,"farmer.life":-farmerLifeLost,round:1}});
     }
 });
