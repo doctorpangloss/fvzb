@@ -8,6 +8,8 @@ var GEM_TILE_SIZE = 48;
 var touchEventData = {};
 var clickEventData = null;
 
+var swapMutex = false;
+
 // Gets the kind of transition event for this browser
 // Adapted from below
 // @author lorenzopolidori
@@ -181,15 +183,19 @@ var evaluateLoop = function(e,r) {
         Meteor.setTimeout(function() {
             Meteor.call("evaluate",Session.get(CURRENT_GAME),evaluateLoop);
         },100);
+    } else {
+        swapMutex = false;
     }
 }
 
 var swapAndEvaluate = function(ax,ay,bx,by) {
+    swapMutex = true;
     Meteor.call("swap",Session.get(CURRENT_GAME),ax,ay,bx,by,function (e,r) {
         if (r) {
             Meteor.call("evaluate",Session.get(CURRENT_GAME),evaluateLoop);
         } else {
             simulateSwap(ax,ay,bx,by);
+            swapMutex = false;
         }
     });
 }

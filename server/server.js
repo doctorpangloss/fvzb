@@ -46,7 +46,7 @@ Meteor.startup(function() {
     Meteor.setInterval(function() {
         _.each(_.pluck(Games.find({closed:false, full:true, "bunny.ready":true, "farmer.ready":true}).fetch(),'_id'),function(gameId){
             Meteor.call("tug",gameId,function(e,r){
-                // Perform asynchronous spawn
+                // Perform asynchronous tug and spawn
                 if (e)
                     console.log(e);
             });
